@@ -5,8 +5,15 @@ Provides REST and WebSocket endpoints for the full audit pipeline.
 import asyncio
 import os
 import sys
+import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if sys.platform.startswith("win"):
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    except Exception as loop_err:
+        pass
 import json
+from utils.safe_strings import safe_lower
 import logging
 import uuid
 from typing import Optional
@@ -35,6 +42,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import traceback
+
+@app.middleware("http")
+async def catch_exceptions(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        logging.getLogger("uxverse.main").exception("Unhandled API exception")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "trace": traceback.format_exc()
+            }
+        )
+
+@app.on_event("startup")
+def startup_db_cleanup():
+    logger = logging.getLogger("uxverse.main")
+    logger.info("Running startup database recovery cleanup...")
+    try:
+        if not db.use_fallback:
+            try:
+                db.db.audits.update_many({"status": "running"}, {"$set": {"status": "failed"}})
+                logger.info("MongoDB running audits recovered.")
+            except Exception as e:
+                logger.warning(f"MongoDB cleanup skipped: {e}")
+                
+        data = db._read_fallback()
+        updated = False
+        for audit in data.get("audits", []):
+            if audit.get("status") == "running":
+                audit["status"] = "failed"
+                updated = True
+        if updated:
+            db._write_fallback(data)
+            logger.info("Fallback JSON running audits recovered.")
+    except Exception as e:
+        logger.exception(f"Startup recovery failed: {e}")
 
 # Active audit queues — audit_id → asyncio.Queue of progress events
 _audit_queues: dict[str, asyncio.Queue] = {}
@@ -542,7 +592,7 @@ def get_audit_plural(audit_id: str):
     for idx, imp in enumerate(improvements):
         top_issues.append({
             "id": imp.get("id", f"priority-{idx}"),
-            "severity": imp.get("severity", "Warning").lower(),
+            "severity": safe_lower(imp.get("severity", "Warning")),
             "description": imp.get("description"),
             "priority_score": imp.get("priority_score", 95 - idx * 5),
             "category": imp.get("category", "usability"),
@@ -655,7 +705,7 @@ def get_issues_plural(audit_id: str):
         
         for issue_list in [p.get("uxIssues", []), p.get("a11yIssues", [])]:
             for iss in issue_list:
-                severity = iss.get("severity", "Minor").lower()
+                severity = safe_lower(iss.get("severity", "Minor"))
                 if severity == "warning":
                     severity = "serious"
                 
@@ -739,7 +789,7 @@ def get_personas_plural(audit_id: str):
             for issue in page.get("uxIssues", []) + page.get("a11yIssues", []):
                 if len(top_issues) < 2:
                     top_issues.append({
-                        "severity": issue.get("severity", "Minor").lower(),
+                        "severity": safe_lower(issue.get("severity", "Minor")),
                         "description": issue.get("description")
                     })
                     
@@ -778,7 +828,7 @@ def get_business_impact_plural(audit_id: str):
     categories_seen = set()
     for p in audit.get("pages", []):
         for issue in p.get("uxIssues", []) + p.get("a11yIssues", []):
-            desc = issue.get("description", "").lower()
+            desc = safe_lower(issue.get("description"))
             category = "General Usability"
             metric = "Conversion Flow"
             loss_range = "5% - 8%"
@@ -932,10 +982,13 @@ def get_page_screenshot_binary(audit_id: str, page_id: str):
         if 0 <= page_idx < len(pages):
             b64_data = pages[page_idx].get("screenshot_b64")
             if b64_data:
-                if "," in b64_data:
-                    b64_data = b64_data.split(",")[-1]
-                img_bytes = base64.b64decode(b64_data)
-                return Response(content=img_bytes, media_type="image/jpeg")
+                try:
+                    if "," in b64_data:
+                        b64_data = b64_data.split(",")[-1]
+                    img_bytes = base64.b64decode(b64_data)
+                    return Response(content=img_bytes, media_type="image/jpeg")
+                except Exception as dec_err:
+                    logger.error(f"Failed to decode base64 screenshot: {dec_err}")
     except Exception as e:
         logger.error(f"Error serving screenshot: {e}")
         
@@ -972,7 +1025,11 @@ async def get_progress_sse_stream(audit_id: str):
                     yield f"data: {json.dumps({'type': 'complete', 'status': 'completed', 'audit_id': audit_id})}\n\n"
                     break
                     
-                yield f"data: {json.dumps(event)}\n\n"
+                try:
+                    yield f"data: {json.dumps(event)}\n\n"
+                except Exception as sse_err:
+                    logger.error(f"SSE yield failed: {sse_err}")
+                    break
                 if event.get("type") in ("complete", "error"):
                     break
         except Exception as e:

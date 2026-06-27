@@ -46,6 +46,7 @@ class AuditOrchestrator:
         self.figma_url = figma_url
         self.figma_token = figma_token
         self.enhance_analysis = enhance_analysis
+        self.errors = []
         self.start_time = time.time()
 
         # Agent singletons
@@ -65,19 +66,51 @@ class AuditOrchestrator:
                 return await self._run_screenshot_pipeline()
 
             # 1. Crawl
-            pages_raw = await self._phase_crawl()
+            try:
+                pages_raw = await self._phase_crawl()
+            except Exception as crawl_err:
+                logger.exception("Crawl phase crashed completely")
+                self.errors.append(f"Crawl failed: {crawl_err}")
+                pages_raw = []
 
             # 2. Per-page analysis
-            pages_audited = await self._phase_analyze(pages_raw)
+            if pages_raw:
+                try:
+                    pages_audited = await self._phase_analyze(pages_raw)
+                except Exception as analyze_err:
+                    logger.exception("Analysis phase crashed completely")
+                    self.errors.append(f"Analysis failed: {analyze_err}")
+            else:
+                # Keep audit record from blanking out
+                pages_audited.append({
+                    "url": self.url,
+                    "path": "/",
+                    "parent_path": "",
+                    "title": "Home (Crawl Failed)",
+                    "uxScore": 30,
+                    "a11yScore": 30,
+                    "uxIssues": [],
+                    "a11yIssues": [],
+                    "personas": [],
+                    "businessImpact": {"conversion_lift_percentage": 0, "estimated_monthly_revenue_lift": 0, "csat_lift_percentage": 0, "development_effort": "Low"},
+                    "beforeAfter": {"before": {"html": "", "css": "", "visual": ""}, "after": {"html": "", "css": "", "visual": ""}},
+                    "screenshotBoxes": [],
+                    "screenshot_b64": "",
+                })
 
             # 3. Aggregate
             audit_record = self._aggregate(pages_audited)
+            audit_record["errors"] = self.errors
+            audit_record["status"] = "completed_with_errors" if self.errors else "completed"
 
             # 4. Persist
-            db.save_audit(audit_record)
+            try:
+                db.save_audit(audit_record)
+            except Exception as db_err:
+                logger.exception("Database save failed")
 
             # 5. Complete event
-            await self._emit("complete", 100, "Audit complete", "", len(pages_audited), len(pages_audited))
+            await self._emit("complete", 100, "Audit complete with partial recoveries" if self.errors else "Audit complete", "", len(pages_audited), len(pages_audited))
             return audit_record
 
         except Exception as exc:
@@ -133,9 +166,43 @@ class AuditOrchestrator:
             ux_score = self._compute_score(ux_issues)
             a11y_score = self._compute_score(a11y_issues)
             
-            personas = self.persona_agent.analyze(ux_issues, a11y_issues, ux_score, a11y_score)
-            biz_impact = self.business_agent.analyze(ux_issues, a11y_issues, f"/screenshot-{idx+1}")
-            before_after = self.improvement_agent.generate("", ux_issues, a11y_issues)
+            try:
+                personas = await asyncio.wait_for(
+                    asyncio.to_thread(self.persona_agent.analyze, ux_issues, a11y_issues, ux_score, a11y_score),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("Persona Agent failed on screenshot")
+                personas = []
+                self.errors.append(f"Persona Agent failed on screenshot {idx+1}")
+
+            try:
+                biz_impact = await asyncio.wait_for(
+                    asyncio.to_thread(self.business_agent.analyze, ux_issues, a11y_issues, f"/screenshot-{idx+1}"),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("Business Agent failed on screenshot")
+                biz_impact = {
+                    "conversion_lift_percentage": 0.0,
+                    "estimated_monthly_revenue_lift": 0,
+                    "csat_lift_percentage": 0.0,
+                    "development_effort": "Low",
+                }
+                self.errors.append(f"Business Agent failed on screenshot {idx+1}")
+
+            try:
+                before_after = await asyncio.wait_for(
+                    asyncio.to_thread(self.improvement_agent.generate, "", ux_issues, a11y_issues),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("AI Improvement Agent failed on screenshot")
+                before_after = {
+                    "before": {"html": "", "css": "", "visual": ""},
+                    "after": {"html": "", "css": "", "visual": ""}
+                }
+                self.errors.append(f"AI Improvement Agent failed on screenshot {idx+1}")
             
             boxes = []
             for jdx, iss in enumerate(ux_issues + a11y_issues):
@@ -188,8 +255,13 @@ class AuditOrchestrator:
         audit_record["source"] = "screenshot"
         audit_record["layout_type"] = res.get("ui_structure", {}).get("layout_type", "landing page")
         audit_record["components"] = res.get("ui_structure", {}).get("components", [])
+        audit_record["errors"] = self.errors
+        audit_record["status"] = "completed_with_errors" if self.errors else "completed"
 
-        db.save_audit(audit_record)
+        try:
+            db.save_audit(audit_record)
+        except Exception as db_err:
+            logger.exception("Database save failed")
 
         await self._emit("complete", 100, "Screenshot analysis complete", "", len(pages_audited), len(pages_audited))
         return audit_record
@@ -270,13 +342,31 @@ class AuditOrchestrator:
             await self._emit("progress", base_pct + 1,
                              "UX Evaluation Agent — Applying Nielsen's 10 Usability Heuristics",
                              page_url, total, idx)
-            ux_issues = self.ux_agent.analyze(html, dom_info, page_url)
+            try:
+                ux_issues = await asyncio.wait_for(
+                    asyncio.to_thread(self.ux_agent.analyze, html, dom_info, page_url),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("UX Agent timed out or failed")
+                ux_issues = []
+                self.errors.append("UX Agent evaluation failed")
+                await self._emit("warning", base_pct + 1, "UX Agent evaluation failed", page_url, total, idx)
 
             # --- Agent 2: A11y ---
             await self._emit("progress", base_pct + 2,
                              "Accessibility Engine — Validating WCAG 2.2 A/AA/AAA rules",
                              page_url, total, idx)
-            a11y_issues = self.a11y_agent.analyze(html, dom_info, page_url)
+            try:
+                a11y_issues = await asyncio.wait_for(
+                    asyncio.to_thread(self.a11y_agent.analyze, html, dom_info, page_url),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("Accessibility Agent timed out or failed")
+                a11y_issues = []
+                self.errors.append("Accessibility Agent evaluation failed")
+                await self._emit("warning", base_pct + 2, "Accessibility Agent evaluation failed", page_url, total, idx)
 
             # --- Compute scores ---
             ux_score = self._compute_score(ux_issues)
@@ -286,19 +376,54 @@ class AuditOrchestrator:
             await self._emit("progress", base_pct + 3,
                              "Persona Simulation Agent — Evaluating 5 user personas",
                              page_url, total, idx)
-            personas = self.persona_agent.analyze(ux_issues, a11y_issues, ux_score, a11y_score)
+            try:
+                personas = await asyncio.wait_for(
+                    asyncio.to_thread(self.persona_agent.analyze, ux_issues, a11y_issues, ux_score, a11y_score),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("Persona Agent timed out or failed")
+                personas = []
+                self.errors.append("Persona Agent evaluation failed")
+                await self._emit("warning", base_pct + 3, "Persona Agent evaluation failed", page_url, total, idx)
 
             # --- Agent 4: Business Impact ---
             await self._emit("progress", base_pct + 4,
                              "Business Impact Agent — Estimating revenue and conversion lift",
                              page_url, total, idx)
-            biz_impact = self.business_agent.analyze(ux_issues, a11y_issues, page_path)
+            try:
+                biz_impact = await asyncio.wait_for(
+                    asyncio.to_thread(self.business_agent.analyze, ux_issues, a11y_issues, page_path),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("Business Agent timed out or failed")
+                biz_impact = {
+                    "conversion_lift_percentage": 0.0,
+                    "estimated_monthly_revenue_lift": 0,
+                    "csat_lift_percentage": 0.0,
+                    "development_effort": "Low",
+                }
+                self.errors.append("Business Agent evaluation failed")
+                await self._emit("warning", base_pct + 4, "Business Agent evaluation failed", page_url, total, idx)
 
             # --- Agent 5: Improvement ---
             await self._emit("progress", base_pct + 5,
                              "AI Improvement Agent — Generating before/after code fixes",
                              page_url, total, idx)
-            before_after = self.improvement_agent.generate(html, ux_issues, a11y_issues)
+            try:
+                before_after = await asyncio.wait_for(
+                    asyncio.to_thread(self.improvement_agent.generate, html, ux_issues, a11y_issues),
+                    timeout=60
+                )
+            except Exception as e:
+                logger.exception("AI Improvement Agent timed out or failed")
+                before_after = {
+                    "before": {"html": "", "css": "", "visual": ""},
+                    "after": {"html": "", "css": "", "visual": ""}
+                }
+                self.errors.append("AI Improvement Agent failed")
+                await self._emit("warning", base_pct + 5, "AI Improvement Agent failed", page_url, total, idx)
 
             # --- Bounding boxes (from issue elements) ---
             boxes = self._generate_bounding_boxes(ux_issues + a11y_issues)

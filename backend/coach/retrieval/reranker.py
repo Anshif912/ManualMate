@@ -1,4 +1,5 @@
 import logging
+from utils.safe_strings import safe_lower
 from typing import List, Dict, Any
 
 logger = logging.getLogger("uxverse.coach.reranker")
@@ -45,7 +46,7 @@ class Reranker:
                 score += density * 0.2
 
             # 3. Critical metadata weight boost
-            severity = metadata.get("severity", "").lower()
+            severity = safe_lower(metadata.get("severity"))
             if severity == "critical":
                 score += 0.15
             elif severity == "warning":

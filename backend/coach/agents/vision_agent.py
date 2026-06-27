@@ -1,4 +1,5 @@
 import logging
+from utils.safe_strings import safe_lower
 from typing import Dict, Any
 
 logger = logging.getLogger("uxverse.coach.vision_agent")
@@ -8,6 +9,13 @@ class VisionAnalysisAgent:
         self.name = "Vision Analysis Agent"
 
     def analyze(self, query: str, context: Dict[str, Any]) -> str:
+        try:
+            return self._analyze_safe(query, context)
+        except Exception as e:
+            logger.exception("Vision analysis failed")
+            return "## Visual analysis unavailable due to background processor error."
+
+    def _analyze_safe(self, query: str, context: Dict[str, Any]) -> str:
         """Analyzes screenshot layout bounds, element grids, visual overlaps, and spacing alignment."""
         logger.info("Vision Analysis Agent starting evaluation...")
         
@@ -72,7 +80,7 @@ class VisionAnalysisAgent:
         a11y_issues = []
         for p in pages:
             for iss in p.get("a11yIssues", []):
-                desc = iss.get("description", "").lower()
+                desc = safe_lower(iss.get("description"))
                 if "contrast" in desc or "label" in desc or "alt" in desc:
                     a11y_issues.append(f"Visual warning '{iss.get('standard')}': {iss.get('description')} on component '{iss.get('element')}'")
                     

@@ -15,6 +15,16 @@ class ImprovementAgent:
     """Generates before/after HTML and CSS pairs from real DOM issues."""
 
     def generate(self, html: str, ux_issues: List[Dict], a11y_issues: List[Dict]) -> Dict[str, Any]:
+        try:
+            return self._generate_safe(html, ux_issues, a11y_issues)
+        except Exception as e:
+            logger.exception("Improvement generation failed")
+            return {
+                "before": {"html": "", "css": "", "visual": ""},
+                "after": {"html": "", "css": "", "visual": ""}
+            }
+
+    def _generate_safe(self, html: str, ux_issues: List[Dict], a11y_issues: List[Dict]) -> Dict[str, Any]:
         """
         Select the most severe issue and generate a real before/after comparison.
         Falls back to a template-based example if no specific snippet can be extracted.

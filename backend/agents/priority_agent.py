@@ -15,6 +15,13 @@ class PriorityAgent:
     """Selects and ranks the top 3 most impactful issues across all audited pages."""
 
     def select_top_improvements(self, pages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        try:
+            return self._select_top_safe(pages)
+        except Exception as e:
+            logger.exception("Priority selection failed")
+            return []
+
+    def _select_top_safe(self, pages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Collect all issues from all pages, score them, and return top 3.
         Each result contains: issue + page context + score + recommendation.

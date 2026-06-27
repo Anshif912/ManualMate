@@ -92,6 +92,13 @@ class Database:
 
     # --- Audit Operations ---
     def save_audit(self, audit: Dict[str, Any]) -> str:
+        try:
+            return self._save_audit_safe(audit)
+        except Exception as e:
+            logger.exception("Fatal database save_audit failed")
+            return audit.get("id", "")
+
+    def _save_audit_safe(self, audit: Dict[str, Any]) -> str:
         if not self.use_fallback:
             try:
                 # Update if exists, otherwise insert
@@ -114,17 +121,21 @@ class Database:
         return audit["id"]
 
     def get_audit(self, audit_id: str) -> Optional[Dict[str, Any]]:
-        if not self.use_fallback:
-            try:
-                return self.db.audits.find_one({"id": audit_id}, {"_id": 0})
-            except Exception as e:
-                logger.error(f"MongoDB get_audit failed: {e}. Reading from fallback.")
-                
-        data = self._read_fallback()
-        for item in data["audits"]:
-            if item["id"] == audit_id:
-                return item
-        return None
+        try:
+            if not self.use_fallback:
+                try:
+                    return self.db.audits.find_one({"id": audit_id}, {"_id": 0})
+                except Exception as e:
+                    logger.error(f"MongoDB get_audit failed: {e}. Reading from fallback.")
+                    
+            data = self._read_fallback()
+            for item in data["audits"]:
+                if item["id"] == audit_id:
+                    return item
+            return None
+        except Exception as e:
+            logger.exception("Database get_audit failed")
+            return None
 
     def list_audits(self) -> List[Dict[str, Any]]:
         if not self.use_fallback:

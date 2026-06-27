@@ -3,6 +3,7 @@ Persona Agent — Generates persona-specific UX scores and recommendations
 based on real issues detected by the UX and A11y agents.
 """
 import logging
+from utils.safe_strings import safe_lower
 from typing import List, Dict, Any
 
 logger = logging.getLogger("uxverse.persona_agent")
@@ -139,13 +140,26 @@ class PersonaAgent:
         ux_score: int,
         a11y_score: int,
     ) -> List[Dict[str, Any]]:
+        try:
+            return self._analyze_safe(ux_issues, a11y_issues, ux_score, a11y_score)
+        except Exception as e:
+            logger.exception("Persona analysis failed")
+            return []
+
+    def _analyze_safe(
+        self,
+        ux_issues: List[Dict[str, Any]],
+        a11y_issues: List[Dict[str, Any]],
+        ux_score: int,
+        a11y_score: int,
+    ) -> List[Dict[str, Any]]:
         all_issues = ux_issues + a11y_issues
         results = []
 
         for persona_cfg in self.PERSONAS:
             score = self._compute_score(all_issues, ux_score, a11y_score, persona_cfg)
             satisfaction = "High" if score >= 78 else ("Medium" if score >= 60 else "Low")
-            sat_key = satisfaction.lower()
+            sat_key = safe_lower(satisfaction)
             results.append({
                 "name": persona_cfg["name"],
                 "role": persona_cfg["role"],
@@ -175,9 +189,9 @@ class PersonaAgent:
 
             # Find best matching weight key
             weight = default_weight
-            issue_id = issue.get("id", "").lower()
-            issue_standard = issue.get("standard", "").lower()
-            issue_heuristic = issue.get("heuristic", "").lower()
+            issue_id = safe_lower(issue.get("id"))
+            issue_standard = safe_lower(issue.get("standard"))
+            issue_heuristic = safe_lower(issue.get("heuristic"))
 
             for key, w in weights.items():
                 if key in issue_id or key in issue_standard or key in issue_heuristic:

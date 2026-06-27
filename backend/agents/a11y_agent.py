@@ -5,6 +5,7 @@ Produces structured issue records with WCAG criterion references.
 import re
 import uuid
 import logging
+from utils.safe_strings import safe_lower, safe_strip
 from typing import List, Dict, Any
 from bs4 import BeautifulSoup
 
@@ -60,7 +61,7 @@ class A11yAgent:
                         "For decorative images use alt=\"\"."
                     ),
                 })
-            elif img.get("alt", "").strip().lower() in ("image", "photo", "picture", "img", "logo"):
+            elif safe_lower(safe_strip(img.get("alt"))) in ("image", "photo", "picture", "img", "logo"):
                 issues.append({
                     "id": f"wcag-1.1.1-generic-{uuid.uuid4().hex[:6]}",
                     "severity": "Warning",
@@ -77,7 +78,7 @@ class A11yAgent:
         label_fors = {lbl.get("for") for lbl in soup.find_all("label") if lbl.get("for")}
 
         for inp in soup.find_all(["input", "select", "textarea"]):
-            inp_type = inp.get("type", "text").lower()
+            inp_type = safe_lower(inp.get("type", "text"))
             if inp_type in ("hidden", "submit", "button", "reset", "image"):
                 continue
 
@@ -284,8 +285,8 @@ class A11yAgent:
             "name": "name", "address": "street-address",
         }
         for inp in soup.find_all("input"):
-            inp_name = (inp.get("name") or inp.get("id") or "").lower()
-            inp_type = inp.get("type", "text").lower()
+            inp_name = safe_lower(inp.get("name") or inp.get("id") or "")
+            inp_type = safe_lower(inp.get("type", "text"))
             for field_kw, ac_value in auto_fields.items():
                 if field_kw in inp_name and not inp.get("autocomplete") and inp_type not in ("hidden", "submit"):
                     issues.append({

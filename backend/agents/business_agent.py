@@ -3,6 +3,7 @@ Business Impact Agent — Computes real revenue, conversion, and CSAT impact
 from the detected UX and A11y issues.
 """
 import logging
+from utils.safe_strings import safe_lower
 import math
 from typing import List, Dict, Any
 
@@ -52,6 +53,23 @@ class BusinessAgent:
         a11y_issues: List[Dict[str, Any]],
         page_path: str,
     ) -> Dict[str, Any]:
+        try:
+            return self._analyze_safe(ux_issues, a11y_issues, page_path)
+        except Exception as e:
+            logger.exception("Business analysis failed")
+            return {
+                "conversion_lift_percentage": 0.0,
+                "estimated_monthly_revenue_lift": 0,
+                "csat_lift_percentage": 0.0,
+                "development_effort": "Low",
+            }
+
+    def _analyze_safe(
+        self,
+        ux_issues: List[Dict[str, Any]],
+        a11y_issues: List[Dict[str, Any]],
+        page_path: str,
+    ) -> Dict[str, Any]:
         all_issues = ux_issues + a11y_issues
         page_multiplier = self._get_page_multiplier(page_path)
 
@@ -89,7 +107,7 @@ class BusinessAgent:
         }
 
     def _get_page_multiplier(self, path: str) -> float:
-        path_lower = path.lower()
+        path_lower = safe_lower(path)
         for keyword, multiplier in CATEGORY_MULTIPLIERS.items():
             if keyword in path_lower:
                 return multiplier
