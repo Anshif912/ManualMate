@@ -611,7 +611,7 @@ class AuditOrchestrator:
         event = {
             "type": event_type,
             "audit_id": self.audit_id,
-            "status": "running" if event_type == "progress" else event_type,
+            "status": "running" if event_type == "progress" else ("completed" if event_type == "complete" else event_type),
             "current_page": current_page,
             "discovered_count": discovered,
             "completed_count": completed,

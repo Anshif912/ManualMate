@@ -222,11 +222,25 @@ async def audit_websocket(websocket: WebSocket, audit_id: str):
                 continue
 
             if event.get("type") == "__done__":
-                break  # Pipeline finished
+                # Pipeline finished — send a final complete event so the frontend
+                # always gets notified even if the orchestrator's complete event
+                # was missed or the queue was consumed before WS connected.
+                try:
+                    await websocket.send_json({
+                        "type": "complete",
+                        "status": "completed",
+                        "audit_id": audit_id,
+                        "percent": 100,
+                    })
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)  # Give browser time to process
+                break
 
             await websocket.send_json(event)
 
             if event.get("type") in ("complete", "error"):
+                await asyncio.sleep(0.5)  # Give browser time to process before close
                 break
 
     except WebSocketDisconnect:
@@ -245,6 +259,7 @@ async def audit_websocket(websocket: WebSocket, audit_id: str):
         except Exception:
             pass
         logger.info(f"WebSocket closed for audit {audit_id}")
+
 
 
 # ─── Coach Helpers ─────────────────────────────────────────────────────────────
