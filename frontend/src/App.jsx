@@ -204,11 +204,13 @@ export default function App() {
     let wsClosed = false;
     let sseStarted = false;
     let pollingInterval = null;
+    let isFinished = false;
 
     const onProgressMessage = (data) => {
       setCurrentProgress(data);
       if (data.message) setStatusLog(prev => [...prev.slice(-49), data.message]);
       if (data.status === "completed" || data.status === "completed_with_errors" || data.status === "failed" || data.type === "complete" || data.type === "error") {
+        isFinished = true;
         const finalStatus = data.status || (data.type === "complete" ? "completed" : "failed");
         setLoading(false);
         setAuditStatus(finalStatus);
@@ -236,7 +238,7 @@ export default function App() {
       };
       ws.onclose = () => {
         wsClosed = true;
-        if (auditStatus !== "completed" && auditStatus !== "completed_with_errors" && auditStatus !== "failed" && !sseStarted) {
+        if (!isFinished && !sseStarted) {
           startSseFallback();
         }
       };
@@ -247,6 +249,7 @@ export default function App() {
 
     // 2. SSE Fallback
     const startSseFallback = () => {
+      if (isFinished) return;
       sseStarted = true;
       console.log("Starting SSE fallback progress handler...");
       let es = null;
@@ -262,7 +265,9 @@ export default function App() {
         es.onerror = (err) => {
           console.warn("SSE progress error, falling back to Polling...", err);
           es.close();
-          startPollingFallback();
+          if (!isFinished) {
+            startPollingFallback();
+          }
         };
       } catch (err) {
         console.warn("SSE initialization error, falling back to Polling...", err);
@@ -272,7 +277,7 @@ export default function App() {
 
     // 3. Polling Fallback (every 2 seconds)
     const startPollingFallback = () => {
-      if (pollingInterval) return;
+      if (pollingInterval || isFinished) return;
       console.log("Starting Polling fallback progress handler...");
       pollingInterval = setInterval(async () => {
         try {
