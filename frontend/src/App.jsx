@@ -208,11 +208,11 @@ export default function App() {
     const onProgressMessage = (data) => {
       setCurrentProgress(data);
       if (data.message) setStatusLog(prev => [...prev.slice(-49), data.message]);
-      if (data.status === "completed" || data.status === "failed" || data.type === "complete" || data.type === "error") {
+      if (data.status === "completed" || data.status === "completed_with_errors" || data.status === "failed" || data.type === "complete" || data.type === "error") {
         const finalStatus = data.status || (data.type === "complete" ? "completed" : "failed");
         setLoading(false);
         setAuditStatus(finalStatus);
-        if (finalStatus === "completed") loadAuditData(id);
+        if (finalStatus === "completed" || finalStatus === "completed_with_errors") loadAuditData(id);
         if (pollingInterval) clearInterval(pollingInterval);
         return true;
       }
@@ -236,7 +236,7 @@ export default function App() {
       };
       ws.onclose = () => {
         wsClosed = true;
-        if (auditStatus !== "completed" && auditStatus !== "failed" && !sseStarted) {
+        if (auditStatus !== "completed" && auditStatus !== "completed_with_errors" && auditStatus !== "failed" && !sseStarted) {
           startSseFallback();
         }
       };
@@ -281,10 +281,10 @@ export default function App() {
             const data = await res.json();
             const progressData = {
               status: data.status,
-              percent: data.status === "completed" ? 100 : 50,
-              message: data.status === "completed" ? "Audit complete" : "Crawling and auditing in progress...",
-              active_agent: data.status === "completed" ? "recommendation" : "crawler",
-              progress: data.status === "completed" ? 100 : 50
+              percent: (data.status === "completed" || data.status === "completed_with_errors") ? 100 : 50,
+              message: (data.status === "completed" || data.status === "completed_with_errors") ? "Audit complete" : "Crawling and auditing in progress...",
+              active_agent: (data.status === "completed" || data.status === "completed_with_errors") ? "recommendation" : "crawler",
+              progress: (data.status === "completed" || data.status === "completed_with_errors") ? 100 : 50
             };
             const done = onProgressMessage(progressData);
             if (done && pollingInterval) {

@@ -13,7 +13,7 @@ const PIPELINE = [
 ];
 
 function getNodeStatus(nodeId, activeAgent, status, index, activeIndex) {
-  if (status === "completed") return "completed";
+  if (status === "completed" || status === "completed_with_errors") return "completed";
   if (status === "failed")    return "failed";
   if (index < activeIndex)    return "completed";
   if (index === activeIndex)  return "active";
@@ -42,7 +42,7 @@ export default function CrawlProgress({ statusLog, currentProgress }) {
           <span className="text-3xs px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-black rounded-full animate-pulse tracking-widest">
             {Math.round(progressPercent)}%
           </span>
-          {status === "completed" && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
+          {(status === "completed" || status === "completed_with_errors") && <CheckCircle2 className="h-4 w-4 text-emerald-400" />}
           {status === "failed"    && <XCircle className="h-4 w-4 text-rose-400" />}
         </div>
       </div>

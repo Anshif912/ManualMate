@@ -32,6 +32,7 @@ function ScoreBadge({ score }) {
 
 function StatusIcon({ status }) {
   if (status === "completed") return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
+  if (status === "completed_with_errors") return <AlertTriangle className="h-4 w-4 text-amber-400" />;
   if (status === "failed") return <XCircle className="h-4 w-4 text-rose-400" />;
   if (status === "running") return <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />;
   return <Clock className="h-4 w-4 text-zinc-500" />;
@@ -89,7 +90,7 @@ export default function MasterDashboard({ onSelectAudit }) {
 
   // Trend data for the chart — score by audit date
   const trendData = audits
-    .filter(a => a.status === "completed" && a.site_score != null)
+    .filter(a => (a.status === "completed" || a.status === "completed_with_errors") && a.site_score != null)
     .slice(0, 10)
     .reverse()
     .map((a, i) => ({
@@ -98,7 +99,7 @@ export default function MasterDashboard({ onSelectAudit }) {
       label: formatUrl(a.start_url),
     }));
 
-  const scoredCompleted = audits.filter(a => a.status === "completed" && a.site_score != null);
+  const scoredCompleted = audits.filter(a => (a.status === "completed" || a.status === "completed_with_errors") && a.site_score != null);
   const avgScore = scoredCompleted.length
     ? Math.round(scoredCompleted.reduce((s, a) => s + a.site_score, 0) / scoredCompleted.length)
     : null;
