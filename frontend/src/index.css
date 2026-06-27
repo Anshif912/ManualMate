@@ -1,0 +1,522 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ManualMate — CosmoQ-faithful design system
+   Exact tokens extracted from https://cosmoq.framer.website/
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Design Tokens (1:1 from CosmoQ CSS) ─────────────────────────────────── */
+:root {
+  --bg-primary:   #06070a;
+  --bg-card:      #0c0f16;
+  --bg-card-2:    #0d1117;
+  --border:       rgba(255,255,255,0.10);
+  --border-2:     rgba(125,164,255,0.16);
+  --text-primary: #ffffff;
+  --text-secondary: #9ba9c4;
+  --text-tertiary: #d1d4e3;
+  --text-muted:   rgba(255,255,255,0.40);
+  --accent-gold:  #ffac0a;
+  --accent-blue:  #0175ff;
+  --accent-emerald: #00f5a0;
+  --radius-card:  16px;
+  --radius-btn:   10px;
+}
+
+/* ── Base Reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #06070a; }
+::-webkit-scrollbar-thumb { background: #1e2535; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #2f3950; }
+
+/* ── Typography Scale ─────────────────────────────────────────────────────── */
+.cosmo-h1 {
+  font-size: clamp(48px, 7vw, 84px);
+  font-weight: 300;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+}
+.cosmo-h2 {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.cosmo-h3 {
+  font-size: clamp(20px, 2.5vw, 28px);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.cosmo-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.cosmo-body {
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.cosmo-small {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Micro Typography Utilities */
+.text-2xs { font-size: 10px !important; }
+.text-3xs { font-size: 9px !important; }
+.text-4xs { font-size: 8px !important; font-size: 0.5rem !important; }
+.text-5xs { font-size: 7px !important; font-size: 0.45rem !important; }
+.text-zinc-550 { color: #52525b !important; }
+.text-zinc-650 { color: #3f3f46 !important; }
+
+/* Premium Cards Styling */
+.cosmo-premium-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: 28px !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.cosmo-premium-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 0 80px rgba(0, 245, 160, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Pill / Badge ─────────────────────────────────────────────────────────── */
+.cosmo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(210,215,230,0.85);
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(12px);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.cosmo-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 30px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border: none;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+.cosmo-btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+.cosmo-btn-primary:active { transform: translateY(0); }
+
+.cosmo-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.cosmo-btn-ghost:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.2);
+}
+
+.cosmo-btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 32px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: box-shadow 0.25s, transform 0.15s;
+  box-shadow: 0 0 28px rgba(1,117,255,0.18);
+}
+.cosmo-btn-dark:hover {
+  box-shadow: 0 0 48px rgba(1,117,255,0.40);
+  transform: translateY(-1px);
+}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.cosmo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+}
+.cosmo-card:hover {
+  border-color: rgba(255,255,255,0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+
+.cosmo-card-glow {
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-card);
+  box-shadow: 0 0 0 1px rgba(125,164,255,0.08), 0 32px 64px rgba(0,0,0,0.5);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.cosmo-card-glow:hover {
+  border-color: rgba(125,164,255,0.3);
+  box-shadow: 0 0 0 1px rgba(125,164,255,0.15), 0 32px 64px rgba(0,0,0,0.6);
+}
+
+/* ── Nav ──────────────────────────────────────────────────────────────────── */
+.cosmo-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  pointer-events: none;
+}
+.cosmo-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  pointer-events: all;
+}
+.cosmo-nav-logo {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-decoration: none;
+}
+.cosmo-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(12,15,22,0.85);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: blur(20px);
+}
+.cosmo-nav-link {
+  padding: 7px 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 999px;
+  transition: color 0.2s, background 0.2s;
+  text-decoration: none;
+  border: none;
+  background: none;
+}
+.cosmo-nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+.cosmo-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── Section Layout ───────────────────────────────────────────────────────── */
+.cosmo-section {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.cosmo-section-wide {
+  width: 100%;
+  padding: 0 24px;
+}
+
+/* ── Noise overlay ────────────────────────────────────────────────────────── */
+.cosmo-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.028;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Feature grid items ───────────────────────────────────────────────────── */
+.feat-icon-wrap {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Marquee / Ticker ─────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.cosmo-ticker {
+  overflow: hidden;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+.cosmo-ticker-inner {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+/* ── Glow Active ──────────────────────────────────────────────────────────── */
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 14px rgba(0,245,160,0.14); }
+  50%      { box-shadow: 0 0 28px rgba(0,245,160,0.32); }
+}
+.glow-active { animation: pulse-glow 2.5s infinite; }
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 8px;
+}
+
+/* ── Glass card (for audit panel) ────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.glass-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 0 80px rgba(0, 245, 160, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Stat counter ─────────────────────────────────────────────────────────── */
+.cosmo-stat-num {
+  font-size: clamp(36px, 4vw, 52px);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* ── Tag chip ─────────────────────────────────────────────────────────────── */
+.cosmo-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* ── Pricing card ─────────────────────────────────────────────────────────── */
+.cosmo-pricing-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.cosmo-pricing-card.featured {
+  border-color: rgba(125,164,255,0.3);
+  background: rgba(1,117,255,0.06);
+  box-shadow: 0 0 48px rgba(1,117,255,0.12);
+}
+.cosmo-pricing-card:hover {
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+/* ── FAQ ──────────────────────────────────────────────────────────────────── */
+.cosmo-faq-item {
+  border-bottom: 1px solid var(--border);
+  padding: 24px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cosmo-faq-item:first-child { border-top: 1px solid var(--border); }
+
+/* ── Testimonial ──────────────────────────────────────────────────────────── */
+.cosmo-testimonial {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+}
+
+/* ── Integration badge ────────────────────────────────────────────────────── */
+.cosmo-integration {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cosmo-integration:hover {
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .audit-grid {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+  }
+  .cosmo-h1 { font-size: clamp(36px, 10vw, 60px); }
+  .cosmo-h2 { font-size: clamp(26px, 7vw, 40px); }
+}
+
+@media (max-width: 1024px) {
+  .overview-split {
+    flex-direction: column !important;
+  }
+}
+
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  .cosmo-nav, .cosmo-noise { display: none !important; }
+}
+
+/* ── Cosmic Custom Classes (1:1 Hero Match) ───────────────────────────────── */
+.cosmic-background {
+  background: rgba(6, 7, 10, 0.5) !important;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.glass-panel:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 0 80px rgba(0, 245, 160, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.hero-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.star-field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                    radial-gradient(1.5px 1.5px at 40px 70px, #ffffff, rgba(0,0,0,0)),
+                    radial-gradient(2px 2px at 90px 110px, #ffffff, rgba(0,0,0,0)),
+                    radial-gradient(1px 1px at 150px 200px, #ffffff, rgba(0,0,0,0));
+  background-size: 200px 200px;
+  opacity: 0.15;
+  z-index: 1;
+}
+
+.aurora-gradient {
+  background: radial-gradient(circle at 50% 50%, rgba(0, 245, 160, 0.12) 0%, rgba(1, 117, 255, 0.08) 50%, transparent 100%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.028;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+
