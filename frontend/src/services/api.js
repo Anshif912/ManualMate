@@ -1,4 +1,6 @@
-export const BASE_URL = "http://localhost:8000";
+const urlParams = new URLSearchParams(window.location.search);
+export const BACKEND_PORT = urlParams.get("port") || "8000";
+export const BASE_URL = `http://localhost:${BACKEND_PORT}`;
 
 // Safe fetch helper: never throws, logs failures and returns null instead
 export async function safeFetch(url, options = {}) {

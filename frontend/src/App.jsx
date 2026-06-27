@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { client } from "./api/client";
+import { BACKEND_PORT } from "./services/api";
 import LandingHero from "./components/LandingHero";
 import AuditInputPage from "./components/AuditInputPage";
 import PremiumResultView from "./components/PremiumResultView";
@@ -222,7 +223,7 @@ export default function App() {
     };
 
     // 1. Try WebSocket
-    const wsUrl = `ws://localhost:8000/ws/audit/${id}`;
+    const wsUrl = `ws://localhost:${BACKEND_PORT}/ws/audit/${id}`;
     let ws = null;
     try {
       ws = new WebSocket(wsUrl);
@@ -254,7 +255,7 @@ export default function App() {
       console.log("Starting SSE fallback progress handler...");
       let es = null;
       try {
-        es = new EventSource(`http://localhost:8000/api/audits/${id}/progress`);
+        es = new EventSource(`http://localhost:${BACKEND_PORT}/api/audits/${id}/progress`);
         es.onmessage = (evt) => {
           try {
             const data = JSON.parse(evt.data);
@@ -281,7 +282,7 @@ export default function App() {
       console.log("Starting Polling fallback progress handler...");
       pollingInterval = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/api/audit/${id}/status`);
+          const res = await fetch(`http://localhost:${BACKEND_PORT}/api/audit/${id}/status`);
           if (res.ok) {
             const data = await res.json();
             const progressData = {
