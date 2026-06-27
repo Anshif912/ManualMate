@@ -5,7 +5,6 @@ Provides REST and WebSocket endpoints for the full audit pipeline.
 import asyncio
 import os
 import sys
-import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 if sys.platform.startswith("win"):
     try:
@@ -1114,3 +1113,13 @@ async def post_query_stream(audit_id: str, request: dict):
             
     return StreamingResponse(sse_chat(), media_type="text/plain")
 
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "backend.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+        reload_excludes=["fallback_db.json", "*.json"],
+    )
