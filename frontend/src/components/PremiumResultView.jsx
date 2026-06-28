@@ -632,16 +632,13 @@ function PremiumResultViewContent({
         }
         return prev;
       });
-
     } catch (e) {
-      console.error("Failed to run chat stream:", e);
+      console.error("Chat stream error:", e);
       setOllamaStatus("Unavailable");
       setChatMessages(prev => {
         const list = [...prev];
         const last = list[list.length - 1];
-        if (last && last.role === "assistant") {
-          last.content = "Connection timed out. Ensure Ollama service is running on local server.";
-        }
+        if (last && last.role === "assistant") last.content = "Connection timed out.";
         return list;
       });
     } finally {
@@ -655,10 +652,674 @@ function PremiumResultViewContent({
     (themeData && (themeData.status === "unavailable" || themeData.status === "failed")) ||
     (executiveSummary && (executiveSummary.status === "unavailable" || executiveSummary.status === "failed"));
 
+  // ─── Sidebar section definitions ──────────────────────────────────────────
+  const NAV_SECTIONS = [
+    { id: "overview",    icon: LayoutDashboard, label: "Overview",        color: "#00f5a0" },
+    { id: "metrics",     icon: BarChart3,        label: "Score Metrics",   color: "#0175ff" },
+    { id: "charts",      icon: Activity,         label: "Analytics",       color: "#a855f7" },
+    { id: "violations",  icon: ShieldAlert,      label: "Violations",      color: "#f43f5e" },
+    { id: "pages",       icon: Globe,            label: "Pages Map",       color: "#0175ff" },
+    { id: "journey",     icon: Compass,          label: "User Journey",    color: "#ffac0a" },
+    { id: "visualizer",  icon: Maximize2,        label: "Visualizer",      color: "#00f5a0" },
+    { id: "business",    icon: TrendingUp,       label: "Business Impact", color: "#ffac0a" },
+    { id: "personas",    icon: Users,            label: "Personas",        color: "#a855f7" },
+    { id: "theme",       icon: Palette,          label: "Visual Theme",    color: "#a855f7" },
+    { id: "ai",          icon: MessageSquare,    label: "AI Assistant",    color: "#00f5a0" },
+    { id: "navgraph",    icon: GitBranch,        label: "Nav Graph",       color: "#0175ff" },
+    { id: "priorities",  icon: CheckCircle,      label: "Priorities",      color: "#00f5a0" },
+    { id: "beforeafter", icon: Code,             label: "Before / After",  color: "#ffac0a" },
+    { id: "progress",    icon: Clock,            label: "Progress",        color: "#a855f7" },
+    { id: "devtools",    icon: Wrench,           label: "Dev Tools",       color: "#f43f5e" },
+  ];
+
+  const [activeSec, setActiveSec] = useState("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const scrollToSection = (id) => {
+    setActiveSec(id);
+    const el = document.getElementById(`section-${id}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  useEffect(() => {
+    const observers = [];
+    NAV_SECTIONS.forEach(({ id }) => {
+      const el = document.getElementById(`section-${id}`);
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSec(id); },
+        { threshold: 0.2 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, [auditId]);
+
+  // ─── Sidebar component ────────────────────────────────────────────────────
+  const Sidebar = () => (
+    <aside style={{
+      position: "sticky", top: 0, height: "100vh",
+      width: sidebarCollapsed ? 60 : 216, flexShrink: 0,
+      display: "flex", flexDirection: "column",
+      background: "rgba(6,7,10,0.92)", backdropFilter: "blur(20px)",
+      borderRight: "1px solid rgba(255,255,255,0.07)",
+      transition: "width 0.28s cubic-bezier(.4,0,.2,1)",
+      overflow: "hidden", zIndex: 40,
+    }}>
+      {/* Sidebar header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: sidebarCollapsed ? "18px 14px" : "18px 18px", borderBottom: "1px solid rgba(255,255,255,0.05)", minHeight: 60, gap: 8 }}>
+        {!sidebarCollapsed && (
+          <span style={{ fontSize: 10, fontWeight: 800, color: "#00f5a0", textTransform: "uppercase", letterSpacing: "0.14em", whiteSpace: "nowrap" }}>Navigate</span>
+        )}
+        <button onClick={() => setSidebarCollapsed(c => !c)} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <ChevronRight size={13} color="#a1a1aa" style={{ transform: sidebarCollapsed ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.28s" }} />
+        </button>
+      </div>
+
+      {/* Nav items */}
+      <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "8px 0" }}>
+        {NAV_SECTIONS.map(({ id, icon: Icon, label, color }) => {
+          const isActive = activeSec === id;
+          return (
+            <button key={id} onClick={() => scrollToSection(id)} title={sidebarCollapsed ? label : undefined} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: sidebarCollapsed ? "9px 16px" : "9px 18px", background: isActive ? `${color}12` : "transparent", borderLeft: `2px solid ${isActive ? color : "transparent"}`, border: "none", borderLeftWidth: 2, borderLeftStyle: "solid", borderLeftColor: isActive ? color : "transparent", cursor: "pointer", transition: "all 0.18s", color: isActive ? color : "rgba(155,169,196,0.6)" }}>
+              <Icon size={14} style={{ flexShrink: 0 }} />
+              {!sidebarCollapsed && <span style={{ fontSize: 11.5, fontWeight: isActive ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Export button */}
+      {!sidebarCollapsed && (
+        <div style={{ padding: "14px 18px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <button onClick={handleExport} style={{ width: "100%", padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(0,245,160,0.08)", border: "1px solid rgba(0,245,160,0.2)", borderRadius: 10, color: "#00f5a0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "pointer" }}>
+            <Download size={12} />Export
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+
+  // ─── Section anchor heading ───────────────────────────────────────────────
+  const SectionAnchor = ({ id, icon: Icon, title, subtitle, color = "#00f5a0" }) => (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 24, scrollMarginTop: 20 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}14`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
+        <Icon size={16} color={color} />
+      </div>
+      <div>
+        <h2 style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-0.01em", margin: 0 }}>{title}</h2>
+        {subtitle && <p style={{ fontSize: 12, color: "rgba(155,169,196,0.55)", margin: "3px 0 0" }}>{subtitle}</p>}
+      </div>
+    </div>
+  );
+
   return (
     <ThemeProvider>
-      <div className="cosmic-background flex flex-col min-h-screen relative font-sans">
+      <div className="cosmic-background font-sans" style={{ display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden" }}>
         <div className="noise-overlay" />
+
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
+        <header style={{ flexShrink: 0, position: "relative", zIndex: 50, background: "rgba(6,7,10,0.85)", backdropFilter: "blur(24px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 28px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 58 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div onClick={onGoHome} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 13, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.15em", color: "#fff" }}>ManualMate</span>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", background: "rgba(0,245,160,0.12)", color: "#00f5a0", borderRadius: 4, textTransform: "uppercase" }}>AI</span>
+            </div>
+            <div style={{ height: 14, width: 1, background: "rgba(255,255,255,0.12)" }} />
+            {isPartial ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px", background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.18)", borderRadius: 8, color: "#eab308", fontSize: 10.5, fontWeight: 650 }}>
+                <AlertTriangle size={11} /><span>Partial Analysis</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "4px 10px", background: "rgba(0,245,160,0.05)", border: "1px solid rgba(0,245,160,0.18)", borderRadius: 8, color: "#00f5a0", fontSize: 10.5, fontWeight: 650 }}>
+                <CheckCircle size={11} /><span>All 7 Agents Active</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={onGoDashboard} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, color: "#e2e8f0", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              <LayoutDashboard size={12} /><span>History</span>
+            </button>
+            <button onClick={handleExport} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 9, color: "#e2e8f0", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}>
+              <Download size={12} /><span>Export</span>
+            </button>
+            <button onClick={onGoAuditInput} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "rgba(0,245,160,0.12)", border: "1px solid rgba(0,245,160,0.28)", borderRadius: 9, color: "#00f5a0", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+              <Sparkles size={12} /><span>New Audit</span>
+            </button>
+          </div>
+        </header>
+
+        {/* ── TWO-PANEL BODY ─────────────────────────────────────────── */}
+        <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", zIndex: 10 }}>
+
+          {/* LEFT SIDEBAR */}
+          <Sidebar />
+
+          {/* RIGHT SCROLL AREA */}
+          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "32px 36px 64px" }}>
+            <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 52, maxWidth: 1200, margin: "0 auto" }}>
+
+              {/* ════ OVERVIEW ══════════════════════════════════════════════ */}
+              <section id="section-overview" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="overview" icon={LayoutDashboard} title="Audit Overview" subtitle="Score summary and key metrics at a glance" color="#00f5a0" />
+                <GlassCard style={{ padding: 36, display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 48, alignItems: "center" }}>
+                  {/* Radial Score */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ position: "relative", width: 180, height: 180, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
+                        <circle cx="90" cy="90" r="76" stroke="rgba(255,255,255,0.04)" strokeWidth="9" fill="transparent" />
+                        <motion.circle cx="90" cy="90" r="76" stroke="#00f5a0" strokeWidth="9" fill="transparent"
+                          strokeDasharray={2 * Math.PI * 76}
+                          initial={{ strokeDashoffset: 2 * Math.PI * 76 }}
+                          animate={{ strokeDashoffset: (2 * Math.PI * 76) - ((siteScore || 0) / 100) * (2 * Math.PI * 76) }}
+                          transition={{ duration: 1.2, ease: "easeOut" }}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <div style={{ position: "absolute", textAlign: "center" }}>
+                        <div style={{ fontSize: 52, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{siteScore || 0}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(155,169,196,0.6)", textTransform: "uppercase", letterSpacing: "0.12em" }}>UX Health</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 14, padding: "5px 14px", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.22)", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#34d399", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      {(siteScore || 0) >= 90 ? "Excellent" : (siteScore || 0) >= 70 ? "Minor Deductions" : "Critical Fixes Required"}
+                    </div>
+                  </div>
+                  {/* Summary */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                    <div>
+                      <span className="cosmo-pill" style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "rgba(0,245,160,0.8)" }}>Analysis Summary</span>
+                      <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-0.025em", marginTop: 8 }}>
+                        {inputType === "image" ? "Vision-Audited Design Layout" : (auditUrl || "").replace(/^https?:\/\/(www\.)?/, "")}
+                      </h1>
+                      {executiveSummary?.headline && (
+                        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.8)", lineHeight: 1.6, marginTop: 10, background: "rgba(255,255,255,0.03)", padding: 14, borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                          {executiveSummary.headline}
+                        </p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: "Pages",          value: safePages.length,                                                          color: "#fff"    },
+                        { label: "Issues",          value: safeIssues.length,                                                         color: "#f43f5e" },
+                        { label: "Occurrences",     value: safeIssues.reduce((a, c) => a + (c.occurrences || 1), 0),                  color: "#ffac0a" },
+                        { label: "Grade",           value: getEstimatedUXGrade(siteScore),                                            color: "#a855f7" },
+                        { label: "Impact Risk",     value: businessImpact?.overall_risk || "Low",                                     color: "#0175ff" },
+                        { label: "Est. Lift",       value: `+${businessImpact?.estimated_improvement || 0}`,                          color: "#00f5a0" },
+                      ].map(({ label, value, color }) => (
+                        <div key={label} style={{ padding: 12, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: "rgba(155,169,196,0.5)" }}>{label}</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color, marginTop: 3 }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </GlassCard>
+              </section>
+
+              {/* ════ SCORE METRICS ═════════════════════════════════════════ */}
+              <section id="section-metrics" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="metrics" icon={BarChart3} title="Score Metrics" subtitle="Breakdown across all compliance dimensions" color="#0175ff" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <MetricCard label="Overall Score"     value={siteScore != null ? `${siteScore}%` : "N/A"}                                            icon={CheckCircle} color="#00f5a0" description="Aesthetic Heuristics" />
+                  <MetricCard label="Accessibility"     value={safeScoreBreakdown.accessibility != null ? `${safeScoreBreakdown.accessibility}%` : "N/A"} icon={Shield}      color="#0175ff" description="WCAG 2.2 AA" />
+                  <MetricCard label="Consistency"       value={safeScoreBreakdown.consistency   != null ? `${safeScoreBreakdown.consistency}%`   : "N/A"} icon={Palette}     color="#a855f7" description="Style uniformity" />
+                  <MetricCard label="Performance"       value={safeScoreBreakdown.performance   != null ? `${safeScoreBreakdown.performance}%`   : "N/A"} icon={Activity}    color="#ffac0a" description="Load & transition" />
+                  <MetricCard label="Violations"        value={safeIssues.length}                                                                         icon={ShieldAlert}  color="#f43f5e" description="Failing codes" />
+                </div>
+              </section>
+
+              {/* ════ ANALYTICS CHARTS ══════════════════════════════════════ */}
+              <section id="section-charts" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="charts" icon={Activity} title="Analytics" subtitle="Compliance radar, severity distribution, and score trend" color="#a855f7" />
+                <LocalErrorBoundary sectionName="Charts">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <GlassCard style={{ minHeight: 360 }}>
+                      <SectionHeader label="Visual Analytics" title="Compliance Radar" />
+                      <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {radarData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                              <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                              <PolarAngleAxis dataKey="subject" stroke="#a1a1aa" fontSize={10} fontWeight="bold" />
+                              <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255,255,255,0.05)" fontSize={8} />
+                              <Radar name="Compliance" dataKey="A" stroke="#00f5a0" fill="#00f5a0" fillOpacity={0.10} />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        ) : <EmptyState message="Radar data unavailable." />}
+                      </div>
+                    </GlassCard>
+                    <GlassCard style={{ minHeight: 360 }}>
+                      <SectionHeader label="Violations Severity" title="Severity Distribution" />
+                      <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {donutData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie data={donutData} cx="50%" cy="50%" innerRadius={58} outerRadius={78} paddingAngle={4} dataKey="value">
+                                {donutData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ backgroundColor: "#06070a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 11 }} />
+                              <Legend layout="horizontal" verticalAlign="bottom" align="center" iconSize={8} wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : <EmptyState message="No issues — 100% compliant." />}
+                      </div>
+                    </GlassCard>
+                    <GlassCard style={{ minHeight: 360 }}>
+                      <SectionHeader label="Timeline" title="Score Trend" />
+                      <div style={{ height: 260, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {lineData.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={lineData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                              <XAxis dataKey="name" stroke="#71717a" fontSize={10} tickLine={false} />
+                              <YAxis stroke="#71717a" domain={[0, 100]} fontSize={10} tickLine={false} />
+                              <Tooltip contentStyle={{ backgroundColor: "#06070a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 11 }} />
+                              <Line type="monotone" dataKey="score" stroke="#0175ff" strokeWidth={3} dot={{ fill: "#00f5a0", r: 4 }} activeDot={{ r: 6 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        ) : <EmptyState message="Score trends unavailable for single uploads." />}
+                      </div>
+                    </GlassCard>
+                  </div>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ TOP VIOLATIONS ════════════════════════════════════════ */}
+              <section id="section-violations" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="violations" icon={ShieldAlert} title="Top Violations" subtitle="Critical and serious issues that need immediate attention" color="#f43f5e" />
+                <GlassCard style={{ padding: 28 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18, alignItems: "center" }}>
+                    <SectionHeader label="Priority Fixes" title="Critical & Serious Issues" />
+                    <span className="cosmo-pill" style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>
+                      {safeIssues.filter(i => i.severity === "critical" || i.severity === "serious").length} High Severity
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {safeIssues.filter(i => ["critical","serious","moderate"].includes(i.severity)).slice(0, 5).map((issue, idx) => (
+                      <div key={issue.id || idx} style={{ display: "flex", justifyContent: "space-between", padding: "13px 18px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span style={{ padding: "3px 8px", borderRadius: 99, fontSize: 9, fontWeight: 800, textTransform: "uppercase", background: `rgba(${issue.severity === "critical" ? "244,63,94" : "249,115,22"}, 0.12)`, color: issue.severity === "critical" ? "#f43f5e" : "#f97316" }}>{issue.severity}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{issue.description}</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, color: "rgba(155,169,196,0.4)", fontFamily: "monospace" }}>-{issue.score_impact || 3}pts</span>
+                          <button onClick={() => { handleIssueSelect(issue.id); scrollToSection("visualizer"); }} style={{ padding: "5px 12px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontSize: 11, color: "#fff", cursor: "pointer", fontWeight: 600 }}>Inspect</button>
+                        </div>
+                      </div>
+                    ))}
+                    {safeIssues.length === 0 && <div style={{ padding: 24, textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 13 }}>No violations detected.</div>}
+                  </div>
+                </GlassCard>
+              </section>
+
+              {/* ════ PAGES MAP ═════════════════════════════════════════════ */}
+              <section id="section-pages" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="pages" icon={Globe} title="Pages Map" subtitle="All discovered pages — click a card to inspect page-level issues" color="#0175ff" />
+                <LocalErrorBoundary sectionName="Pages">
+                  <GlassCard style={{ padding: 24 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 14 }}>
+                      {safePages.map((p, idx) => {
+                        const isActive = p.page_id === activePageId || p.id === activePageId;
+                        return (
+                          <div key={p.page_id || idx} onClick={() => handlePageSelect(p.page_id || p.id)} style={{ padding: 18, background: isActive ? "rgba(0,245,160,0.04)" : "rgba(255,255,255,0.01)", border: `1px solid ${isActive ? "rgba(0,245,160,0.28)" : "rgba(255,255,255,0.06)"}`, borderRadius: 16, cursor: "pointer", transition: "all 0.22s", display: "flex", flexDirection: "column", gap: 10 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: "rgba(155,169,196,0.4)" }}>Page #{p.crawl_order || idx + 1}</span>
+                              <span style={{ fontSize: 12, fontWeight: 800, color: getEstimatedUXGradeColor(p.page_score) }}>Score: {p.page_score || 100}</span>
+                            </div>
+                            <h4 style={{ fontSize: 13, fontWeight: 700, color: "#fff", wordBreak: "break-all", margin: 0 }}>{p.url ? p.url.replace(/^https?:\/\/(www\.)?/, "") : "Uploaded Design"}</h4>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "rgba(155,169,196,0.5)" }}>
+                              <span>{p.issue_count || 0} violations</span><span>{p.total_occurrences || 0} occurrences</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ USER JOURNEY ══════════════════════════════════════════ */}
+              {safeSteps.length > 0 && (
+                <section id="section-journey" style={{ scrollMarginTop: 20 }}>
+                  <SectionAnchor id="journey" icon={Compass} title="User Journey" subtitle="Timeline steps and flow compliance scores" color="#ffac0a" />
+                  <GlassCard style={{ padding: 24 }}>
+                    <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 8 }}>
+                      {safeSteps.map((step, idx) => {
+                        const isActive = step.step_id === activeStepId;
+                        return (
+                          <div key={step.step_id || idx} onClick={() => handleStepSelect(step.step_id)} style={{ minWidth: 190, padding: 16, background: isActive ? "rgba(0,245,160,0.04)" : "rgba(255,255,255,0.01)", border: `1px solid ${isActive ? "rgba(0,245,160,0.24)" : "rgba(255,255,255,0.06)"}`, borderRadius: 14, cursor: "pointer", transition: "all 0.2s", display: "flex", flexDirection: "column", gap: 8 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: 9, fontWeight: 800, color: "rgba(155,169,196,0.4)" }}>STEP {step.step_number}</span>
+                              <span style={{ fontSize: 10, fontWeight: 800, color: "#00f5a0" }}>{step.score}%</span>
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{step.step_label}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </GlassCard>
+                </section>
+              )}
+
+              {/* ════ VISUALIZER ════════════════════════════════════════════ */}
+              <section id="section-visualizer" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="visualizer" icon={Maximize2} title="Issue Visualizer" subtitle="Drag & zoom the screenshot — bounding boxes highlight violations" color="#00f5a0" />
+                <LocalErrorBoundary sectionName="Visualizer">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <GlassCard className="lg:col-span-2" style={{ height: 540, display: "flex", flexDirection: "column" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, alignItems: "center" }}>
+                        <SectionHeader label="Node Mapping" title="Bounding Box Overlay" />
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {[["−", () => setZoom(z => Math.max(0.5, z - 0.2))], ["Reset", () => { setZoom(1); setPan({ x: 0, y: 0 }); }], ["+", () => setZoom(z => Math.min(3, z + 0.2))]].map(([label, fn]) => (
+                            <button key={label} onClick={fn} style={{ height: 26, padding: "0 10px", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.02)", borderRadius: 6, color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>{label}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div onMouseMove={handleMouseMove} onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} style={{ flex: 1, position: "relative", overflow: "hidden", background: "#0b0c10", borderRadius: 14, border: "1px solid rgba(255,255,255,0.06)", cursor: isDragging ? "grabbing" : "grab" }}>
+                        <div style={{ position: "absolute", width: "100%", height: "100%", transform: `translate(${pan.x}px,${pan.y}px) scale(${zoom})`, transformOrigin: "top left", transition: isDragging ? "none" : "transform 0.15s" }}>
+                          <img src={getScreenshotSrc(activePage)} onLoad={e => setImgSize({ w: e.target.naturalWidth || 1280, h: e.target.naturalHeight || 800 })} style={{ display: "block", maxWidth: "none", height: "auto", userSelect: "none" }} alt="" />
+                          {activePageIssues.filter(i => i.boundingBox).map((issue, idx) => {
+                            const box = issue.boundingBox;
+                            const isSel = issue.id === activeIssue?.id;
+                            return (
+                              <div key={issue.id || idx} onClick={e => { e.stopPropagation(); handleIssueSelect(issue.id); }} style={{ position: "absolute", left: `${(box.x / imgSize.w) * 100}%`, top: `${(box.y / imgSize.h) * 100}%`, width: `${(box.width / imgSize.w) * 100}%`, height: `${(box.height / imgSize.h) * 100}%`, border: isSel ? "2px solid #00f5a0" : `1px dashed ${DONUT_COLORS[issue.severity] || "#ffac0a"}`, background: isSel ? "rgba(0,245,160,0.08)" : "transparent", cursor: "pointer", transition: "all 0.2s", zIndex: isSel ? 30 : 10, boxShadow: isSel ? "0 0 16px rgba(0,245,160,0.4)" : "none" }} title={`${issue.rule_id}: ${issue.description}`} />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </GlassCard>
+                    <GlassCard className="lg:col-span-1" style={{ height: 540, display: "flex", flexDirection: "column" }}>
+                      <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.10em", color: "#e2e8f0", marginBottom: 16 }}>Node Metrics</h3>
+                      {activeIssue ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1, overflowY: "auto" }}>
+                          <div>
+                            <span style={{ padding: "3px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, textTransform: "uppercase", background: `rgba(${activeIssue.severity === "critical" ? "244,63,94" : "249,115,22"}, 0.12)`, color: activeIssue.severity === "critical" ? "#f43f5e" : "#f97316" }}>{activeIssue.severity}</span>
+                            <h4 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginTop: 8 }}>{activeIssue.rule_id || "UX Rule violation"}</h4>
+                          </div>
+                          <p style={{ fontSize: 12.5, color: "rgba(155,169,196,0.85)", lineHeight: 1.6 }}>{activeIssue.description}</p>
+                          {activeIssue.wcag_reference && <span style={{ display: "inline-flex", padding: "5px 12px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontSize: 11, color: "#e2e8f0", width: "fit-content" }}>{activeIssue.wcag_reference}</span>}
+                          {(activeIssue.recommendation || activeIssue.fix?.explanation_text) && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, background: "rgba(0,245,160,0.04)", border: "1px solid rgba(0,245,160,0.14)", borderRadius: 12 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#00f5a0", textTransform: "uppercase" }}><Sparkles size={11} />AI Recommendation</div>
+                              <p style={{ fontSize: 12, color: "rgba(155,169,196,0.9)", lineHeight: 1.6 }}>{activeIssue.recommendation || activeIssue.fix?.explanation_text}</p>
+                              {activeIssue.fix?.css_rule_text && <pre style={{ background: "rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.06)", padding: 10, borderRadius: 8, fontSize: 10, fontFamily: "monospace", overflowX: "auto", color: "#34d399", margin: 0 }}>{activeIssue.fix.css_rule_text}</pre>}
+                              <button onClick={e => { e.stopPropagation(); onToggleFix && onToggleFix(activeIssue.id); }} style={{ width: "100%", padding: "8px 0", cursor: "pointer", background: selectedFixes.has(activeIssue.id) ? "rgba(52,211,153,0.12)" : "linear-gradient(135deg,#0175ff,#00f5a0)", border: selectedFixes.has(activeIssue.id) ? "1px solid rgba(52,211,153,0.22)" : "none", borderRadius: 8, color: selectedFixes.has(activeIssue.id) ? "#34d399" : "#06070a", fontSize: 11, fontWeight: 800, textTransform: "uppercase", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                                {selectedFixes.has(activeIssue.id) ? <><Check size={12} />Fix Selected</> : "Apply Fix Simulator"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flex: 1, alignItems: "center", justifyContent: "center", color: "rgba(155,169,196,0.4)", fontSize: 12, textAlign: "center" }}>Select a violation in the visualizer to inspect it.</div>
+                      )}
+                    </GlassCard>
+                  </div>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ BUSINESS IMPACT ═══════════════════════════════════════ */}
+              <section id="section-business" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="business" icon={TrendingUp} title="Business Impact" subtitle="Trace visual failures to revenue conversion impact models" color="#ffac0a" />
+                <GlassCard style={{ padding: 28 }}>
+                  {businessImpact && businessImpact.status !== "unavailable" ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { label: "Dropoff Risk",    value: `${businessImpact.overall_risk} Risk`,         color: businessImpact.risk_color === "rose" ? "#f43f5e" : "#34d399" },
+                          { label: "Score Lift",       value: `+${businessImpact.estimated_improvement}pts`, color: "#00f5a0" },
+                          { label: "Tracked Issues",   value: `${businessImpact.total_issues} Failures`,    color: "#0175ff" },
+                        ].map(({ label, value, color }) => (
+                          <div key={label} style={{ padding: 18, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 14 }}>
+                            <div style={{ fontSize: 10, color: "rgba(155,169,196,0.5)", textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 5 }}>{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        {Array.isArray(businessImpact.by_category) && businessImpact.by_category.map((cat, idx) => (
+                          <div key={idx} style={{ padding: 20, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div><span style={{ fontSize: 9, fontWeight: 800, color: "#a1a1aa", textTransform: "uppercase" }}>Issue Detected</span><h4 style={{ fontSize: 13.5, fontWeight: 800, color: "#fff", marginTop: 3 }}>{cat.metric} ({cat.category})</h4><p style={{ fontSize: 12.5, color: "rgba(155,169,196,0.75)", marginTop: 3, lineHeight: 1.5 }}>{cat.description}</p></div>
+                            <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                            <div><span style={{ fontSize: 9, fontWeight: 800, color: "#f97316", textTransform: "uppercase" }}>Conversion Impact</span><div style={{ fontSize: 14, fontWeight: 900, color: "#f97316", marginTop: 3 }}>{cat.loss_range} Dropoff <span style={{ fontSize: 11, color: "rgba(155,169,196,0.5)", fontWeight: 400 }}>on {cat.loss_metric}</span></div></div>
+                            <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                            <div><span style={{ fontSize: 9, fontWeight: 800, color: "#00f5a0", textTransform: "uppercase" }}>Expected Improvement</span><p style={{ fontSize: 13, color: "#00f5a0", fontWeight: 700, marginTop: 3 }}>{cat.fix_benefit}</p></div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : <EmptyState message="No business impact data available." />}
+                </GlassCard>
+              </section>
+
+              {/* ════ PERSONAS ══════════════════════════════════════════════ */}
+              <section id="section-personas" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="personas" icon={Users} title="User Personas" subtitle="Accessibility friction across diverse user profiles" color="#a855f7" />
+                <LocalErrorBoundary sectionName="Personas">
+                  <GlassCard style={{ padding: 24 }}>
+                    {Array.isArray(personas) && personas.length > 0 && !personas[0]?.reason ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {personas.map((pers, idx) => (
+                          <div key={pers.id || idx} style={{ padding: 20, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 22 }}>{pers.emoji}</span><h4 style={{ fontSize: 13, fontWeight: 800, color: "#fff", margin: 0 }}>{pers.label}</h4></div>
+                              <span style={{ padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 900, background: `rgba(${pers.grade_color === "rose" ? "244,63,94" : pers.grade_color === "yellow" ? "234,179,8" : "52,211,153"}, 0.12)`, color: pers.grade_color === "rose" ? "#f43f5e" : pers.grade_color === "yellow" ? "#eab308" : "#34d399" }}>{pers.grade}: {pers.score}%</span>
+                            </div>
+                            <p style={{ fontSize: 12, color: "rgba(155,169,196,0.65)", lineHeight: 1.5, margin: 0 }}>{pers.description}</p>
+                            {Array.isArray(pers.top_issues) && pers.top_issues.length > 0 && (
+                              <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 5 }}>
+                                {pers.top_issues.map((iss, iidx) => (
+                                  <div key={iidx} style={{ display: "flex", gap: 7 }}><span style={{ color: iss.severity === "critical" ? "#f43f5e" : "#f97316", fontSize: 11, marginTop: 2 }}>•</span><p style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", margin: 0, lineHeight: 1.4 }}>{iss.description}</p></div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : <EmptyState message="Persona analysis needs more interaction data." />}
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ VISUAL THEME ══════════════════════════════════════════ */}
+              <section id="section-theme" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="theme" icon={Palette} title="Visual Theme" subtitle="Recommended branding palette, typography, and compliance status" color="#a855f7" />
+                <GlassCard style={{ padding: 28 }}>
+                  {themeData && themeData.status !== "unavailable" ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 24 }}>{themeData.emoji}</span><div><h4 style={{ fontSize: 14, fontWeight: 800, color: "#fff", margin: 0 }}>{themeData.label} Style Profile</h4><span style={{ fontSize: 10, color: "rgba(155,169,196,0.45)", fontWeight: 700, textTransform: "uppercase" }}>{themeData.industry}</span></div></div>
+                        <p style={{ fontSize: 13, color: "rgba(155,169,196,0.75)", lineHeight: 1.6 }}>{themeData.description}</p>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", background: "rgba(0,245,160,0.04)", border: "1px solid rgba(0,245,160,0.12)", padding: "8px 12px", borderRadius: 10, width: "fit-content" }}><span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00f5a0" }} /><span style={{ fontSize: 11, fontWeight: 700, color: "#00f5a0" }}>{themeData.wcag_aa_compliant ? "WCAG 2.2 AA Verified" : "Minor adjustments required"}</span></div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        <div>
+                          <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: "rgba(155,169,196,0.45)" }}>Swatches — {themeData.palette_name}</span>
+                          <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+                            {Array.isArray(themeData.swatches) && themeData.swatches.map((hex, idx) => (
+                              <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}><div style={{ width: 38, height: 38, borderRadius: 9, background: hex, border: "1px solid rgba(255,255,255,0.08)" }} /><span style={{ fontSize: 9, color: "rgba(155,169,196,0.5)", fontFamily: "monospace" }}>{hex}</span></div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: "rgba(155,169,196,0.45)" }}>Typography</span>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                            {Array.isArray(themeData.fonts) && themeData.fonts.map((f, idx) => <span key={idx} style={{ padding: "4px 10px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, fontSize: 11, color: "#fff" }}>{f}</span>)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : <EmptyState message="No theme analysis signals available." />}
+                </GlassCard>
+              </section>
+
+              {/* ════ AI ASSISTANT ══════════════════════════════════════════ */}
+              <section id="section-ai" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="ai" icon={MessageSquare} title="AI Assistant" subtitle="Ask Ollie about any UX finding, WCAG violation, or persona concern" color="#00f5a0" />
+                <LocalErrorBoundary sectionName="AI Assistant">
+                  <GlassCard style={{ padding: 28 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <h3 style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>Autonomous UX Consultation</h3>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: ollamaStatus === "Connected" ? "#00f5a0" : ollamaStatus === "Streaming" || ollamaStatus === "Connecting" ? "#ffac0a" : "#f43f5e", boxShadow: ollamaStatus === "Connected" ? "0 0 8px #00f5a0" : "none" }} />
+                        <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: ollamaStatus === "Connected" ? "#00f5a0" : ollamaStatus === "Streaming" || ollamaStatus === "Connecting" ? "#ffac0a" : "#f43f5e" }}>{ollamaStatus === "Connected" ? "Connected" : ollamaStatus === "Connecting" ? "Connecting…" : ollamaStatus === "Streaming" ? "Streaming" : ollamaStatus === "ModelMissing" ? "Model Missing" : "Offline"}</span>
+                      </div>
+                    </div>
+
+                    {ollamaStatus === "Unavailable" || ollamaStatus === "ModelMissing" ? (
+                      <div style={{ padding: "28px 24px", background: "rgba(244,63,94,0.02)", border: "1px solid rgba(244,63,94,0.18)", borderRadius: 14, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <AlertTriangle size={26} style={{ color: "#f43f5e" }} />
+                        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#fff", margin: 0 }}>{ollamaStatus === "ModelMissing" ? "Required model not found." : "Local AI offline."}</h4>
+                        <pre style={{ background: "#000", border: "1px solid rgba(255,255,255,0.06)", padding: "8px 18px", borderRadius: 8, fontSize: 12, fontFamily: "monospace", color: "#f43f5e", margin: 0 }}>{ollamaStatus === "ModelMissing" ? "ollama pull qwen2.5:3b" : "ollama serve"}</pre>
+                        <button onClick={checkOllamaConnection} className="cosmo-btn-primary" style={{ marginTop: 4 }}><RefreshCw size={12} /> Retry</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12, background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 14, padding: 18, maxHeight: 260, overflowY: "auto" }}>
+                          {chatMessages.map((msg, idx) => (
+                            <div key={idx} style={{ display: "flex", gap: 8, alignSelf: msg.role === "user" ? "flex-end" : "flex-start", maxWidth: "82%" }}>
+                              <div style={{ background: msg.role === "user" ? "linear-gradient(135deg,#0175ff,#00f5a0)" : "rgba(255,255,255,0.03)", border: msg.role === "user" ? "none" : "1px solid rgba(255,255,255,0.06)", borderRadius: msg.role === "user" ? "14px 14px 2px 14px" : "14px 14px 14px 2px", padding: "10px 15px", color: msg.role === "user" ? "#06070a" : "#e2e8f0", fontSize: 13, lineHeight: 1.5, wordBreak: "break-word" }}>
+                                {msg.role === "assistant" ? renderMarkdown(msg.content) : msg.content}
+                              </div>
+                            </div>
+                          ))}
+                          {isSending && chatMessages[chatMessages.length - 1]?.content === "" && (
+                            <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, padding: "10px 15px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "14px 14px 14px 2px" }}>
+                              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Ollie is typing</span>
+                              <div style={{ display: "flex", gap: 3 }}>
+                                {[0, 0.2, 0.4].map(d => <span key={d} className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: `${d}s` }} />)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 7, flexWrap: "wrap", margin: "12px 0 14px" }}>
+                          {suggestedPrompts.map((p, idx) => (
+                            <button key={idx} onClick={() => handleSendChat(p)} disabled={isSending} style={{ padding: "5px 11px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, fontSize: 11, color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>{p}</button>
+                          ))}
+                        </div>
+                        <form onSubmit={e => { e.preventDefault(); handleSendChat(chatInput); }} style={{ display: "flex", gap: 10 }}>
+                          <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask about violations, personas, or WCAG fixes…" disabled={isSending} style={{ flex: 1, padding: "11px 16px", background: "rgba(0,0,0,0.20)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 11, color: "#fff", fontSize: 13, outline: "none" }} />
+                          <button type="submit" disabled={isSending || !chatInput.trim()} style={{ padding: "0 20px", background: isSending || !chatInput.trim() ? "rgba(0,245,160,0.2)" : "linear-gradient(135deg,#00f5a0,#14b8a6)", border: "none", borderRadius: 11, color: isSending || !chatInput.trim() ? "rgba(255,255,255,0.3)" : "#022c22", fontWeight: 800, fontSize: 11, textTransform: "uppercase", cursor: isSending || !chatInput.trim() ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                            <Send size={12} /><span>Send</span>
+                          </button>
+                        </form>
+                      </>
+                    )}
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ NAV GRAPH ═════════════════════════════════════════════ */}
+              <section id="section-navgraph" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="navgraph" icon={GitBranch} title="Navigation Graph" subtitle="Interactive journey node relationships and internal link topology" color="#0175ff" />
+                <LocalErrorBoundary sectionName="Navigation Graph">
+                  <GlassCard style={{ padding: 28 }}>
+                    {navigationGraphData && navigationGraphData.length > 0 ? (
+                      <NavigationGraph pages={navigationGraphData} activePageId={activePageId} onPageSelect={handlePageSelect} />
+                    ) : <EmptyState message="No navigation graph data available." />}
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ PRIORITIES ════════════════════════════════════════════ */}
+              <section id="section-priorities" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="priorities" icon={CheckCircle} title="Priority Agent" subtitle="AI-ranked fix sequence to maximise UX improvement per effort" color="#00f5a0" />
+                <LocalErrorBoundary sectionName="Priority Agent">
+                  <GlassCard style={{ padding: 28 }}>
+                    <PriorityAgent auditId={auditId} selectedFixes={selectedFixes} onToggleFix={onToggleFix} />
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ BEFORE / AFTER ════════════════════════════════════════ */}
+              <section id="section-beforeafter" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="beforeafter" icon={Code} title="Before / After" subtitle="AI-generated improvement diff — baseline vs proposed correction" color="#ffac0a" />
+                <LocalErrorBoundary sectionName="Before vs After">
+                  <GlassCard style={{ padding: 28 }}>
+                    {beforeAfterList && beforeAfterList.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+                        {beforeAfterList.map((item, idx) => (
+                          <div key={item.id || idx} style={{ padding: 18, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 14 }}>
+                            <h4 style={{ fontSize: 12, fontWeight: 800, color: "#00f5a0", marginBottom: 12 }}>{item.page_path}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                              {[["Baseline", "#f43f5e", item.before], ["Proposed", "#34d399", item.after]].map(([label, color, data]) => (
+                                <div key={label} style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 800, color, textTransform: "uppercase" }}>{label}</span>
+                                  <div style={{ padding: 12, background: `rgba(${color === "#f43f5e" ? "244,63,94" : "52,211,153"},0.03)`, border: `1px solid rgba(${color === "#f43f5e" ? "244,63,94" : "52,211,153"},0.12)`, borderRadius: 10 }}>
+                                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.8)", marginBottom: 6, fontStyle: "italic" }}>{data?.visual || "—"}</div>
+                                    <pre style={{ margin: 0, fontSize: 10, fontFamily: "monospace", color: color === "#f43f5e" ? "rgba(255,255,255,0.5)" : "#34d399", overflowX: "auto" }}>{data?.html || "<!-- No code -->"}</pre>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <EmptyState message="No style override diffs available." />}
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ PROGRESS HISTORY ══════════════════════════════════════ */}
+              <section id="section-progress" style={{ scrollMarginTop: 20 }}>
+                <SectionAnchor id="progress" icon={Clock} title="Progress History" subtitle="Audit improvement timeline and score tracking over time" color="#a855f7" />
+                <LocalErrorBoundary sectionName="Progress History">
+                  <GlassCard style={{ padding: 28 }}>
+                    {progressHistory ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(155,169,196,0.6)", textTransform: "uppercase" }}>Score Progression</span>
+                          <div style={{ height: 190 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={progressHistory.history || []}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                                <XAxis dataKey="timestamp" stroke="#71717a" fontSize={9} tickLine={false} />
+                                <YAxis domain={[0, 100]} stroke="#71717a" fontSize={9} tickLine={false} />
+                                <Tooltip contentStyle={{ backgroundColor: "#06070a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 11 }} />
+                                <Line type="monotone" dataKey="uxScore"   name="UX"   stroke="#00f5a0" strokeWidth={2} dot={{ r: 3 }} />
+                                <Line type="monotone" dataKey="a11yScore" name="A11y" stroke="#0175ff" strokeWidth={2} dot={{ r: 3 }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          <div style={{ padding: 14, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12 }}>
+                            <div style={{ fontSize: 10, color: "rgba(155,169,196,0.5)", textTransform: "uppercase", fontWeight: 700 }}>Remaining Issues</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: "#f43f5e", marginTop: 4 }}>{progressHistory.remaining_issues || 0} unresolved</div>
+                          </div>
+                          {Array.isArray(progressHistory.next_recommendations) && progressHistory.next_recommendations.map((rec, rIdx) => (
+                            <div key={rIdx} style={{ display: "flex", alignItems: "center", gap: 8, padding: 10, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 8 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a855f7" }} />
+                              <span style={{ fontSize: 12, color: "#e2e8f0" }}>{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : <EmptyState message="No timeline progress history available." />}
+                  </GlassCard>
+                </LocalErrorBoundary>
+              </section>
+
+              {/* ════ DEV TOOLS ═════════════════════════════════════════════ */}
+              <section id="section-devtools" style={{ scrollMarginTop: 20, paddingBottom: 48 }}>
+                <SectionAnchor id="devtools" icon={Wrench} title="Developer Tools" subtitle="Re-audit with applied fixes and file-level diff comparison" color="#f43f5e" />
+                <LocalErrorBoundary sectionName="Developer Tools">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+                    <ReAuditDiff auditId={auditId} selectedFixes={Array.from(selectedFixes)} onReAuditComplete={() => {}} />
+                    <FileDiffPanel auditId={auditId} />
+                  </div>
+                </LocalErrorBoundary>
+              </section>
+
+            </motion.div>
+          </main>
+        </div>
+      </div>
+    </ThemeProvider>
+  );
+}
+
         
         {/* ── STICKY GLASS HEADER ────────────────────────────────────────── */}
         <header style={{
