@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield, LayoutDashboard, ArrowLeft, Globe, Image as ImageIcon,
@@ -652,25 +652,42 @@ function PremiumResultViewContent({
     (themeData && (themeData.status === "unavailable" || themeData.status === "failed")) ||
     (executiveSummary && (executiveSummary.status === "unavailable" || executiveSummary.status === "failed"));
 
-  // ─── Sidebar section definitions ──────────────────────────────────────────
-  const NAV_SECTIONS = [
-    { id: "overview",    icon: LayoutDashboard, label: "Overview",        color: "#00f5a0" },
-    { id: "metrics",     icon: BarChart3,        label: "Score Metrics",   color: "#0175ff" },
-    { id: "charts",      icon: Activity,         label: "Analytics",       color: "#a855f7" },
-    { id: "violations",  icon: ShieldAlert,      label: "Violations",      color: "#f43f5e" },
-    { id: "pages",       icon: Globe,            label: "Pages Map",       color: "#0175ff" },
-    { id: "journey",     icon: Compass,          label: "User Journey",    color: "#ffac0a" },
-    { id: "visualizer",  icon: Maximize2,        label: "Visualizer",      color: "#00f5a0" },
-    { id: "business",    icon: TrendingUp,       label: "Business Impact", color: "#ffac0a" },
-    { id: "personas",    icon: Users,            label: "Personas",        color: "#a855f7" },
-    { id: "theme",       icon: Palette,          label: "Visual Theme",    color: "#a855f7" },
-    { id: "ai",          icon: MessageSquare,    label: "AI Assistant",    color: "#00f5a0" },
-    { id: "navgraph",    icon: GitBranch,        label: "Nav Graph",       color: "#0175ff" },
-    { id: "priorities",  icon: CheckCircle,      label: "Priorities",      color: "#00f5a0" },
-    { id: "beforeafter", icon: Code,             label: "Before / After",  color: "#ffac0a" },
-    { id: "progress",    icon: Clock,            label: "Progress",        color: "#a855f7" },
-    { id: "devtools",    icon: Wrench,           label: "Dev Tools",       color: "#f43f5e" },
+  // ─── Sidebar grouped section definitions ──────────────────────────────────
+  const NAV_GROUPS = [
+    {
+      label: "Summary",
+      items: [
+        { id: "overview",   icon: LayoutDashboard, label: "Overview",        color: "#00f5a0" },
+        { id: "metrics",    icon: BarChart3,        label: "Score Metrics",   color: "#0175ff" },
+        { id: "charts",     icon: Activity,         label: "Analytics",       color: "#a855f7" },
+        { id: "violations", icon: ShieldAlert,      label: "Violations",      color: "#f43f5e" },
+      ],
+    },
+    {
+      label: "UX Analysis",
+      items: [
+        { id: "pages",      icon: Globe,            label: "Pages Map",       color: "#0175ff" },
+        { id: "journey",    icon: Compass,          label: "User Journey",    color: "#ffac0a" },
+        { id: "visualizer", icon: Maximize2,        label: "Visualizer",      color: "#00f5a0" },
+        { id: "business",   icon: TrendingUp,       label: "Business Impact", color: "#ffac0a" },
+        { id: "personas",   icon: Users,            label: "Personas",        color: "#a855f7" },
+        { id: "theme",      icon: Palette,          label: "Visual Theme",    color: "#a855f7" },
+      ],
+    },
+    {
+      label: "Tools",
+      items: [
+        { id: "ai",          icon: MessageSquare, label: "AI Assistant",   color: "#00f5a0" },
+        { id: "navgraph",    icon: GitBranch,     label: "Nav Graph",      color: "#0175ff" },
+        { id: "priorities",  icon: CheckCircle,   label: "Priorities",     color: "#00f5a0" },
+        { id: "beforeafter", icon: Code,          label: "Before / After", color: "#ffac0a" },
+        { id: "progress",    icon: Clock,         label: "Progress",       color: "#a855f7" },
+        { id: "devtools",    icon: Wrench,        label: "Dev Tools",      color: "#f43f5e" },
+      ],
+    },
   ];
+
+  const NAV_SECTIONS = NAV_GROUPS.flatMap(g => g.items);
 
   const [activeSec, setActiveSec] = useState("overview");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -688,7 +705,7 @@ function PremiumResultViewContent({
       if (!el) return;
       const obs = new IntersectionObserver(
         ([entry]) => { if (entry.isIntersecting) setActiveSec(id); },
-        { threshold: 0.2 }
+        { rootMargin: "-10% 0px -60% 0px", threshold: 0 }
       );
       obs.observe(el);
       observers.push(obs);
@@ -700,57 +717,114 @@ function PremiumResultViewContent({
   const Sidebar = () => (
     <aside style={{
       position: "sticky", top: 0, height: "100vh",
-      width: sidebarCollapsed ? 60 : 216, flexShrink: 0,
+      width: sidebarCollapsed ? 56 : 220, flexShrink: 0,
       display: "flex", flexDirection: "column",
-      background: "rgba(6,7,10,0.92)", backdropFilter: "blur(20px)",
-      borderRight: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(5,6,9,0.96)",
+      backdropFilter: "blur(24px)",
+      borderRight: "1px solid rgba(255,255,255,0.06)",
       transition: "width 0.28s cubic-bezier(.4,0,.2,1)",
       overflow: "hidden", zIndex: 40,
     }}>
-      {/* Sidebar header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: sidebarCollapsed ? "18px 14px" : "18px 18px", borderBottom: "1px solid rgba(255,255,255,0.05)", minHeight: 60, gap: 8 }}>
+      {/* Brand row */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: sidebarCollapsed ? "center" : "space-between", padding: sidebarCollapsed ? "16px 0" : "16px 16px 16px 18px", borderBottom: "1px solid rgba(255,255,255,0.05)", minHeight: 56, gap: 8 }}>
         {!sidebarCollapsed && (
-          <span style={{ fontSize: 10, fontWeight: 800, color: "#00f5a0", textTransform: "uppercase", letterSpacing: "0.14em", whiteSpace: "nowrap" }}>Navigate</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#00f5a0", boxShadow: "0 0 8px #00f5a0" }} />
+            <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.14em" }}>Sections</span>
+          </div>
         )}
-        <button onClick={() => setSidebarCollapsed(c => !c)} style={{ width: 28, height: 28, borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <ChevronRight size={13} color="#a1a1aa" style={{ transform: sidebarCollapsed ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.28s" }} />
+        <button
+          onClick={() => setSidebarCollapsed(c => !c)}
+          style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.03)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.2s" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+        >
+          <ChevronRight size={12} color="#71717a" style={{ transform: sidebarCollapsed ? "rotate(0deg)" : "rotate(180deg)", transition: "transform 0.28s" }} />
         </button>
       </div>
 
-      {/* Nav items */}
-      <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "8px 0" }}>
-        {NAV_SECTIONS.map(({ id, icon: Icon, label, color }) => {
-          const isActive = activeSec === id;
-          return (
-            <button key={id} onClick={() => scrollToSection(id)} title={sidebarCollapsed ? label : undefined} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: sidebarCollapsed ? "9px 16px" : "9px 18px", background: isActive ? `${color}12` : "transparent", borderLeft: `2px solid ${isActive ? color : "transparent"}`, border: "none", borderLeftWidth: 2, borderLeftStyle: "solid", borderLeftColor: isActive ? color : "transparent", cursor: "pointer", transition: "all 0.18s", color: isActive ? color : "rgba(155,169,196,0.6)" }}>
-              <Icon size={14} style={{ flexShrink: 0 }} />
-              {!sidebarCollapsed && <span style={{ fontSize: 11.5, fontWeight: isActive ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>}
-            </button>
-          );
-        })}
+      {/* Grouped nav */}
+      <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "10px 0", scrollbarWidth: "none" }}>
+        {NAV_GROUPS.map((group, gIdx) => (
+          <div key={group.label}>
+            {!sidebarCollapsed && (
+              <div style={{ padding: gIdx === 0 ? "6px 18px 4px" : "14px 18px 4px", fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.22)" }}>
+                {group.label}
+              </div>
+            )}
+            {sidebarCollapsed && gIdx > 0 && (
+              <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "6px 12px" }} />
+            )}
+            {group.items.map(({ id, icon: Icon, label, color }) => {
+              const isActive = activeSec === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => scrollToSection(id)}
+                  title={sidebarCollapsed ? label : undefined}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center",
+                    gap: 9,
+                    padding: sidebarCollapsed ? "8px 0" : "7px 18px",
+                    justifyContent: sidebarCollapsed ? "center" : "flex-start",
+                    background: isActive ? `${color}10` : "transparent",
+                    borderLeft: isActive && !sidebarCollapsed ? `2px solid ${color}` : "2px solid transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.16s",
+                    color: isActive ? color : "rgba(155,169,196,0.55)",
+                  }}
+                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; } }}
+                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(155,169,196,0.55)"; } }}
+                >
+                  <div style={{ width: isActive ? 26 : 22, height: isActive ? 26 : 22, borderRadius: 7, background: isActive ? `${color}18` : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.16s", flexShrink: 0 }}>
+                    <Icon size={13} />
+                  </div>
+                  {!sidebarCollapsed && (
+                    <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 450, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", letterSpacing: isActive ? "-0.01em" : "0" }}>
+                      {label}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      {/* Export button */}
-      {!sidebarCollapsed && (
-        <div style={{ padding: "14px 18px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <button onClick={handleExport} style={{ width: "100%", padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(0,245,160,0.08)", border: "1px solid rgba(0,245,160,0.2)", borderRadius: 10, color: "#00f5a0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: "pointer" }}>
-            <Download size={12} />Export
-          </button>
-        </div>
-      )}
+      {/* Bottom area */}
+      <div style={{ padding: sidebarCollapsed ? "12px 8px" : "12px 14px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <button
+          onClick={handleExport}
+          title={sidebarCollapsed ? "Export" : undefined}
+          style={{ width: "100%", padding: sidebarCollapsed ? "8px 0" : "8px 12px", display: "flex", alignItems: "center", justifyContent: sidebarCollapsed ? "center" : "center", gap: 6, background: "rgba(0,245,160,0.07)", border: "1px solid rgba(0,245,160,0.15)", borderRadius: 9, color: "#00f5a0", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "background 0.2s" }}
+          onMouseEnter={e => e.currentTarget.style.background = "rgba(0,245,160,0.14)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(0,245,160,0.07)"}
+        >
+          <Download size={12} />
+          {!sidebarCollapsed && <span>Export Report</span>}
+        </button>
+      </div>
     </aside>
   );
 
-  // ─── Section anchor heading ───────────────────────────────────────────────
+  // ─── Section anchor / page heading ───────────────────────────────────────
   const SectionAnchor = ({ id, icon: Icon, title, subtitle, color = "#00f5a0" }) => (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 24, scrollMarginTop: 20 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}14`, border: `1px solid ${color}28`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 2 }}>
-        <Icon size={16} color={color} />
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        {/* Color bar */}
+        <div style={{ width: 3, height: 36, borderRadius: 99, background: `linear-gradient(180deg, ${color}, ${color}44)`, flexShrink: 0 }} />
+        {/* Icon badge */}
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: `${color}12`, border: `1px solid ${color}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Icon size={16} color={color} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", margin: 0, lineHeight: 1.2 }}>{title}</h2>
+          {subtitle && <p style={{ fontSize: 12, color: "rgba(155,169,196,0.5)", margin: "3px 0 0", fontWeight: 400 }}>{subtitle}</p>}
+        </div>
       </div>
-      <div>
-        <h2 style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: "-0.01em", margin: 0 }}>{title}</h2>
-        {subtitle && <p style={{ fontSize: 12, color: "rgba(155,169,196,0.55)", margin: "3px 0 0" }}>{subtitle}</p>}
-      </div>
+      {/* Gradient rule */}
+      <div style={{ marginTop: 16, height: 1, background: `linear-gradient(90deg, ${color}30, rgba(255,255,255,0.04) 60%, transparent)` }} />
     </div>
   );
 
@@ -797,65 +871,70 @@ function PremiumResultViewContent({
           <Sidebar />
 
           {/* RIGHT SCROLL AREA */}
-          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "32px 36px 64px" }}>
-            <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 52, maxWidth: 1200, margin: "0 auto" }}>
+          <main style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "28px 32px 72px", scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.08) transparent" }}>
+            <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: "flex", flexDirection: "column", gap: 44, maxWidth: 1100, margin: "0 auto" }}>
 
               {/* ════ OVERVIEW ══════════════════════════════════════════════ */}
               <section id="section-overview" style={{ scrollMarginTop: 20 }}>
                 <SectionAnchor id="overview" icon={LayoutDashboard} title="Audit Overview" subtitle="Score summary and key metrics at a glance" color="#00f5a0" />
-                <GlassCard style={{ padding: 36, display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 48, alignItems: "center" }}>
+
+                {/* Hero card — score + metadata */}
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 32, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 20, padding: 32, alignItems: "center" }}>
                   {/* Radial Score */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{ position: "relative", width: 180, height: 180, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg style={{ transform: "rotate(-90deg)", width: "100%", height: "100%" }}>
-                        <circle cx="90" cy="90" r="76" stroke="rgba(255,255,255,0.04)" strokeWidth="9" fill="transparent" />
-                        <motion.circle cx="90" cy="90" r="76" stroke="#00f5a0" strokeWidth="9" fill="transparent"
-                          strokeDasharray={2 * Math.PI * 76}
-                          initial={{ strokeDashoffset: 2 * Math.PI * 76 }}
-                          animate={{ strokeDashoffset: (2 * Math.PI * 76) - ((siteScore || 0) / 100) * (2 * Math.PI * 76) }}
-                          transition={{ duration: 1.2, ease: "easeOut" }}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+                    <div style={{ position: "relative", width: 156, height: 156, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg style={{ transform: "rotate(-90deg)", width: "100%", height: "100%", position: "absolute" }}>
+                        <circle cx="78" cy="78" r="66" stroke="rgba(255,255,255,0.05)" strokeWidth="8" fill="transparent" />
+                        <motion.circle cx="78" cy="78" r="66" stroke="#00f5a0" strokeWidth="8" fill="transparent"
+                          strokeDasharray={2 * Math.PI * 66}
+                          initial={{ strokeDashoffset: 2 * Math.PI * 66 }}
+                          animate={{ strokeDashoffset: (2 * Math.PI * 66) - ((siteScore || 0) / 100) * (2 * Math.PI * 66) }}
+                          transition={{ duration: 1.4, ease: "easeOut" }}
                           strokeLinecap="round"
                         />
                       </svg>
-                      <div style={{ position: "absolute", textAlign: "center" }}>
-                        <div style={{ fontSize: 52, fontWeight: 900, color: "#fff", letterSpacing: "-0.03em" }}>{siteScore || 0}</div>
-                        <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(155,169,196,0.6)", textTransform: "uppercase", letterSpacing: "0.12em" }}>UX Health</div>
+                      <div style={{ textAlign: "center", zIndex: 1 }}>
+                        <div style={{ fontSize: 46, fontWeight: 900, color: "#fff", letterSpacing: "-0.04em", lineHeight: 1 }}>{siteScore || 0}</div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(155,169,196,0.6)", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 3 }}>/ 100</div>
                       </div>
                     </div>
-                    <div style={{ marginTop: 14, padding: "5px 14px", background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.22)", borderRadius: 999, fontSize: 11, fontWeight: 800, color: "#34d399", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      {(siteScore || 0) >= 90 ? "Excellent" : (siteScore || 0) >= 70 ? "Minor Deductions" : "Critical Fixes Required"}
+                    <div style={{ padding: "4px 14px", background: "rgba(0,245,160,0.08)", border: "1px solid rgba(0,245,160,0.2)", borderRadius: 999, fontSize: 10, fontWeight: 800, color: "#00f5a0", textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center", whiteSpace: "nowrap" }}>
+                      {(siteScore || 0) >= 90 ? "Excellent" : (siteScore || 0) >= 70 ? "Good" : (siteScore || 0) >= 50 ? "Needs Work" : "Critical"}
                     </div>
                   </div>
-                  {/* Summary */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+                  {/* Right metadata */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     <div>
-                      <span className="cosmo-pill" style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: "rgba(0,245,160,0.8)" }}>Analysis Summary</span>
-                      <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: "-0.025em", marginTop: 8 }}>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: "rgba(0,245,160,0.7)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 6 }}>Analysis Summary</div>
+                      <h1 style={{ fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em", margin: 0, lineHeight: 1.3 }}>
                         {inputType === "image" ? "Vision-Audited Design Layout" : (auditUrl || "").replace(/^https?:\/\/(www\.)?/, "")}
                       </h1>
                       {executiveSummary?.headline && (
-                        <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.8)", lineHeight: 1.6, marginTop: 10, background: "rgba(255,255,255,0.03)", padding: 14, borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.65, marginTop: 10, padding: "12px 16px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)", margin: "10px 0 0" }}>
                           {executiveSummary.headline}
                         </p>
                       )}
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+
+                    {/* Stat grid */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
                       {[
-                        { label: "Pages",          value: safePages.length,                                                          color: "#fff"    },
-                        { label: "Issues",          value: safeIssues.length,                                                         color: "#f43f5e" },
-                        { label: "Occurrences",     value: safeIssues.reduce((a, c) => a + (c.occurrences || 1), 0),                  color: "#ffac0a" },
-                        { label: "Grade",           value: getEstimatedUXGrade(siteScore),                                            color: "#a855f7" },
-                        { label: "Impact Risk",     value: businessImpact?.overall_risk || "Low",                                     color: "#0175ff" },
-                        { label: "Est. Lift",       value: `+${businessImpact?.estimated_improvement || 0}`,                          color: "#00f5a0" },
-                      ].map(({ label, value, color }) => (
-                        <div key={label} style={{ padding: 12, background: "rgba(255,255,255,0.015)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12 }}>
-                          <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: "rgba(155,169,196,0.5)" }}>{label}</div>
-                          <div style={{ fontSize: 18, fontWeight: 800, color, marginTop: 3 }}>{value}</div>
+                        { label: "Pages",        value: safePages.length,                                               color: "#fff",    icon: "📄" },
+                        { label: "Issues",        value: safeIssues.length,                                              color: "#f43f5e", icon: "⚠️" },
+                        { label: "Occurrences",   value: safeIssues.reduce((a, c) => a + (c.occurrences || 1), 0),      color: "#ffac0a", icon: "🔁" },
+                        { label: "UX Grade",      value: getEstimatedUXGrade(siteScore),                                 color: "#a855f7", icon: "🏅" },
+                        { label: "Risk Level",    value: businessImpact?.overall_risk || "Low",                         color: "#0175ff", icon: "📊" },
+                        { label: "Score Lift",    value: `+${businessImpact?.estimated_improvement || 0}pts`,           color: "#00f5a0", icon: "📈" },
+                      ].map(({ label, value, color, icon }) => (
+                        <div key={label} style={{ padding: "12px 14px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", color: "rgba(155,169,196,0.5)", letterSpacing: "0.06em" }}>{label}</div>
+                          <div style={{ fontSize: 17, fontWeight: 800, color }}>{icon} {value}</div>
                         </div>
                       ))}
                     </div>
                   </div>
-                </GlassCard>
+                </div>
               </section>
 
               {/* ════ SCORE METRICS ═════════════════════════════════════════ */}
