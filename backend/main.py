@@ -610,7 +610,8 @@ def get_audit_plural(audit_id: str):
             "description": imp.get("description"),
             "priority_score": imp.get("priority_score", 95 - idx * 5),
             "category": imp.get("category", "usability"),
-            "page_url": audit.get("url"),
+            "page_url": imp.get("page_url") or audit.get("url"),
+            "page_path": imp.get("page_path") or "/",
             "fix": imp.get("fix", {
                 "explanation_text": imp.get("recommendation"),
                 "css_rule_text": f"/* Recommended Fix */\n{imp.get('recommendation')}"

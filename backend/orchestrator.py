@@ -490,14 +490,25 @@ class AuditOrchestrator:
 
     def _build_history(self, current_ux: int, current_a11y: int) -> List[Dict]:
         """Build history with previous audits from DB + current."""
+        import urllib.parse
         try:
-            previous = db.list_audits()  # list of {uxScore, a11yScore, timestamp}
+            current_domain = urllib.parse.urlparse(self.url).netloc.lower() or self.url
+            previous = db.list_audits()  # list of {uxScore, a11yScore, timestamp, url}
+            
+            # Filter audits belonging to the same domain name
+            filtered_prev = []
+            for prev in previous:
+                prev_url = prev.get("url", "")
+                prev_domain = urllib.parse.urlparse(prev_url).netloc.lower() or prev_url
+                if prev_domain == current_domain and prev.get("id") != self.audit_id:
+                    filtered_prev.append(prev)
+
             history = []
-            for prev in previous[-2:]:
+            for prev in filtered_prev[-2:]:
                 history.append({
                     "timestamp": prev.get("timestamp", "Previous Audit")[:10],
-                    "uxScore": prev.get("uxScore", current_ux - 8),
-                    "a11yScore": prev.get("a11yScore", current_a11y - 6),
+                    "uxScore": prev.get("uxScore", current_ux),
+                    "a11yScore": prev.get("a11yScore", current_a11y),
                 })
         except Exception:
             history = []
