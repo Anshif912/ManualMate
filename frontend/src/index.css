@@ -460,26 +460,21 @@ body {
 
 /* ── Cosmic Custom Classes (1:1 Hero Match) ───────────────────────────────── */
 .cosmic-background {
-  background: linear-gradient(135deg, #06070a 0%, #0a0c12 50%, #080a10 100%) !important;
+  background: rgba(6, 7, 10, 0.5) !important;
   min-height: 100vh;
   position: relative;
   overflow: hidden;
 }
 
 .glass-panel {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.055) 0%,
-    rgba(255, 255, 255, 0.025) 100%
-  ) !important;
-  border: 1px solid rgba(255, 255, 255, 0.11) !important;
-  backdrop-filter: blur(32px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(160%) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  backdrop-filter: blur(60px) saturate(180%) brightness(1.08) !important;
+  -webkit-backdrop-filter: blur(60px) saturate(180%) brightness(1.08) !important;
   border-radius: 20px !important;
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
-    0 8px 32px rgba(0, 0, 0, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.4) !important;
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 32px rgba(0, 0, 0, 0.4) !important;
   transition:
     transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
@@ -489,11 +484,11 @@ body {
 .glass-panel:hover {
   transform: translateY(-2px) !important;
   box-shadow:
-    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
-    0 12px 40px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(0, 245, 160, 0.12),
-    0 0 30px rgba(0, 245, 160, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 245, 160, 0.15),
+    0 0 24px rgba(0, 245, 160, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 .hero-glow {
@@ -533,17 +528,3 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── Ambient glow orbs behind glass panels ────────────────────────────────── */
-.cosmic-background::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 40% at 15% 20%,  rgba(0, 245, 160, 0.09)  0%, transparent 60%),
-    radial-gradient(ellipse 50% 35% at 85% 15%,  rgba(1, 117, 255, 0.10)  0%, transparent 60%),
-    radial-gradient(ellipse 45% 40% at 80% 80%,  rgba(168, 85, 247, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 55% 35% at 20% 85%,  rgba(249, 115, 22, 0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 50% 50%,  rgba(0, 245, 160, 0.03)  0%, transparent 70%);
-}
