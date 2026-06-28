@@ -1344,35 +1344,99 @@ function PremiumResultViewContent({
               <section id="section-progress" style={{ scrollMarginTop: 20 }}>
                 <SectionAnchor id="progress" icon={Clock} title="Progress History" subtitle="Audit improvement timeline and score tracking over time" color="#a855f7" />
                 <LocalErrorBoundary sectionName="Progress History">
-                  <GlassCard style={{ padding: 28 }}>
+                  <GlassCard style={{ padding: 24 }}>
                     {progressHistory ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(155,169,196,0.6)", textTransform: "uppercase" }}>Score Progression</span>
-                          <div style={{ height: 190 }}>
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        {/* Chart Column */}
+                        <div className="lg:col-span-7" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 4, height: 14, background: "#a855f7", borderRadius: 4 }} />
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Score Progression</span>
+                          </div>
+                          <div style={{ height: 210, width: "100%", background: "rgba(0,0,0,0.2)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.04)", padding: "16px 12px 6px" }}>
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={progressHistory.history || []}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                                <XAxis dataKey="timestamp" stroke="#71717a" fontSize={9} tickLine={false} />
-                                <YAxis domain={[0, 100]} stroke="#71717a" fontSize={9} tickLine={false} />
-                                <Tooltip contentStyle={{ backgroundColor: "#06070a", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, fontSize: 11 }} />
-                                <Line type="monotone" dataKey="uxScore"   name="UX"   stroke="#00f5a0" strokeWidth={2} dot={{ r: 3 }} />
-                                <Line type="monotone" dataKey="a11yScore" name="A11y" stroke="#0175ff" strokeWidth={2} dot={{ r: 3 }} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                                <XAxis dataKey="timestamp" stroke="rgba(155,169,196,0.4)" fontSize={9.5} tickLine={false} axisLine={false} />
+                                <YAxis domain={[0, 100]} stroke="rgba(155,169,196,0.4)" fontSize={9.5} tickLine={false} axisLine={false} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "rgba(10,12,18,0.95)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    borderRadius: 10,
+                                    fontSize: 11,
+                                    color: "#fff",
+                                    boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
+                                  }}
+                                />
+                                <Legend verticalAlign="top" height={24} align="right" iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700, paddingBottom: 10 }} />
+                                <Line type="monotone" dataKey="uxScore" name="UX Score" stroke="#00f5a0" strokeWidth={2.5} activeDot={{ r: 5 }} dot={{ r: 3, stroke: "#00f5a0", strokeWidth: 1.5, fill: "#0a0c12" }} />
+                                <Line type="monotone" dataKey="a11yScore" name="A11y Score" stroke="#0175ff" strokeWidth={2.5} activeDot={{ r: 5 }} dot={{ r: 3, stroke: "#0175ff", strokeWidth: 1.5, fill: "#0a0c12" }} />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                          <div style={{ padding: 14, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 12 }}>
-                            <div style={{ fontSize: 10, color: "rgba(155,169,196,0.5)", textTransform: "uppercase", fontWeight: 700 }}>Remaining Issues</div>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: "#f43f5e", marginTop: 4 }}>{progressHistory.remaining_issues || 0} unresolved</div>
-                          </div>
-                          {Array.isArray(progressHistory.next_recommendations) && progressHistory.next_recommendations.map((rec, rIdx) => (
-                            <div key={rIdx} style={{ display: "flex", alignItems: "center", gap: 8, padding: 10, background: "rgba(255,255,255,0.01)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 8 }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a855f7" }} />
-                              <span style={{ fontSize: 12, color: "#e2e8f0" }}>{rec}</span>
+
+                        {/* Recommendations & Issues Column */}
+                        <div className="lg:col-span-5" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                          {/* Remaining Issues Widget */}
+                          <div style={{
+                            padding: "16px 20px",
+                            background: "rgba(244,63,94,0.03)",
+                            border: "1px solid rgba(244,63,94,0.12)",
+                            borderRadius: 14,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between"
+                          }}>
+                            <div>
+                              <div style={{ fontSize: 9.5, color: "rgba(244,63,94,0.7)", textTransform: "uppercase", fontWeight: 800, letterSpacing: "0.06em" }}>Remaining Issues</div>
+                              <div style={{ fontSize: 20, fontWeight: 900, color: "#f43f5e", marginTop: 4 }}>{progressHistory.remaining_issues || 0} unresolved</div>
                             </div>
-                          ))}
+                            <div style={{
+                              width: 34, height: 34, borderRadius: "50%",
+                              background: "rgba(244,63,94,0.08)", border: "1px solid rgba(244,63,94,0.2)",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontSize: 14
+                            }}>
+                              ⚠️
+                            </div>
+                          </div>
+
+                          {/* Next Recommendations List */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                            <div style={{ fontSize: 9.5, fontWeight: 800, color: "rgba(155,169,196,0.5)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Next Recommendations</div>
+                            {Array.isArray(progressHistory.next_recommendations) && progressHistory.next_recommendations.length > 0 ? (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8, overflowY: "auto", maxHeight: 150 }}>
+                                {progressHistory.next_recommendations.map((rec, rIdx) => (
+                                  <div key={rIdx} style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 10,
+                                    padding: "10px 12px",
+                                    background: "rgba(255,255,255,0.015)",
+                                    border: "1px solid rgba(255,255,255,0.04)",
+                                    borderRadius: 10
+                                  }}>
+                                    <span style={{
+                                      width: 14, height: 14, borderRadius: "50%",
+                                      background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.25)",
+                                      display: "flex", alignItems: "center", justifyContent: "center",
+                                      fontSize: 8.5, fontWeight: 800, color: "#a855f7",
+                                      marginTop: 2, flexShrink: 0
+                                    }}>
+                                      {rIdx + 1}
+                                    </span>
+                                    <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.85)", lineHeight: 1.45 }}>{rec}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ padding: 14, textAlign: "center", color: "rgba(155,169,196,0.3)", fontSize: 11, background: "rgba(255,255,255,0.01)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.04)" }}>
+                                All recommendations completed!
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ) : <EmptyState message="No timeline progress history available." />}
