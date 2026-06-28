@@ -128,42 +128,56 @@ export default function MasterDashboard({ onSelectAudit }) {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {[
-          { label: "Total Audits", value: audits.length, icon: BarChart2, color: "indigo" },
-          { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "—", icon: TrendingUp, color: "emerald" },
-          { label: "Issues Found", value: totalIssues, icon: AlertTriangle, color: "amber" },
-        ].map(({ label, value, icon: Icon, color }) => (
+          { label: "Total Audits", value: audits.length, icon: BarChart2, color: "#a855f7", bg: "rgba(168,85,247,0.04)", border: "rgba(168,85,247,0.15)" },
+          { label: "Avg Score", value: avgScore != null ? `${avgScore}/100` : "—", icon: TrendingUp, color: "#00f5a0", bg: "rgba(0,245,160,0.04)", border: "rgba(0,245,160,0.15)" },
+          { label: "Issues Found", value: totalIssues, icon: AlertTriangle, color: "#f43f5e", bg: "rgba(244,63,94,0.04)", border: "rgba(244,63,94,0.15)" },
+        ].map(({ label, value, icon: Icon, color, bg, border }) => (
           <motion.div
             key={label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5 relative overflow-hidden"
+            className="glass-card"
+            style={{
+              padding: "20px 24px",
+              border: `1px solid ${border}`,
+              background: bg,
+              borderRadius: 16,
+              position: "relative",
+              overflow: "hidden",
+            }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/2 to-transparent pointer-events-none" />
-            <div className="flex items-center justify-between mb-2">
+            <div style={{ height: 2, width: "100%", background: `linear-gradient(90deg, ${color}, transparent)`, position: "absolute", top: 0, left: 0 }} />
+            <div className="flex items-center justify-between mb-3">
               <span className="text-4xs text-zinc-500 uppercase tracking-widest font-black">{label}</span>
-              <Icon className={`h-3.5 w-3.5 text-${color}-400`} />
+              <div style={{ width: 24, height: 24, borderRadius: 6, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyItems: "center", justifyContent: "center" }}>
+                <Icon size={12} color={color} />
+              </div>
             </div>
-            <p className="text-2xl font-black text-white tracking-tight">{value ?? "—"}</p>
+            <p className="text-3xl font-black text-white tracking-tight" style={{ margin: 0 }}>{value ?? "—"}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Score trend chart */}
       {trendData.length > 1 && (
-        <div className="glass-card p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/2 to-transparent pointer-events-none" />
-          <p className="text-3xs font-black text-zinc-400 uppercase tracking-widest mb-4">Score Trend</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="label" tick={{ fill: "#71717a", fontSize: 9 }} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fill: "#71717a", fontSize: 9 }} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="score" stroke="#10b981" strokeWidth={2.5} dot={{ fill: "#10b981", r: 3 }} />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="glass-card" style={{ padding: "24px 28px", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ width: 4, height: 14, background: "#10b981", borderRadius: 4 }} />
+            <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.08em" }}>Audit Score Trend</span>
+          </div>
+          <div style={{ height: 160, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 12, padding: "16px 12px 6px" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+                <XAxis dataKey="label" stroke="rgba(155,169,196,0.4)" fontSize={9.5} tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 100]} stroke="rgba(155,169,196,0.4)" fontSize={9.5} tickLine={false} axisLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line type="monotone" dataKey="score" name="Score" stroke="#10b981" strokeWidth={2.5} activeDot={{ r: 5 }} dot={{ r: 3, stroke: "#10b981", strokeWidth: 1.5, fill: "#0a0c12" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 

@@ -121,20 +121,20 @@ class AuditOrchestrator:
     async def _run_screenshot_pipeline(self) -> Dict[str, Any]:
         from screenshot_parser import screenshot_parser
         
-        await self._emit("progress", 5, "Vision Agent — Loading uploaded screenshots", "", 0, 0)
+        await self._emit("progress", 5, "Vision Agent — Loading uploaded screenshots", "", 0, 0, active_agent="vision")
         
         # 1. Run screenshot parser
         screenshots = self.screenshots or []
         res = await screenshot_parser.parse_screenshots(screenshots, self.enhance_analysis)
         
-        await self._emit("progress", 30, "Vision Agent — Performing visual understanding and feature extraction", "", len(screenshots), 0)
+        await self._emit("progress", 30, "Vision Agent — Performing visual understanding and feature extraction", "", len(screenshots), 0, active_agent="vision")
         
         # Map visual structure to pages
         pages_audited = []
         issues = res.get("issues", [])
         
         for idx, img_b64 in enumerate(screenshots):
-            await self._emit("progress", 40 + int((idx / len(screenshots)) * 30), "Vision Agent — Parsing layout coordinates and text hierarchies", f"Screenshot {idx+1}", len(screenshots), idx)
+            await self._emit("progress", 40 + int((idx / len(screenshots)) * 30), "Vision Agent — Parsing layout coordinates and text hierarchies", f"Screenshot {idx+1}", len(screenshots), idx, active_agent="vision")
             
             # Filter issues matching this screenshot
             prefix = f"Screenshot {idx+1} -"
@@ -249,7 +249,7 @@ class AuditOrchestrator:
                 "screenshot_b64": "",
             })
 
-        await self._emit("progress", 85, "Prioritization Agent — Sorting and ranking visual insights", "", len(screenshots), len(screenshots))
+        await self._emit("progress", 85, "Prioritization Agent — Sorting and ranking visual insights", "", len(screenshots), len(screenshots), active_agent="severity")
         
         audit_record = self._aggregate(pages_audited)
         audit_record["source"] = "screenshot"
@@ -289,7 +289,7 @@ class AuditOrchestrator:
     # ── Phase 1: Crawl ────────────────────────────────────────────────────────
 
     async def _phase_crawl(self) -> List[Dict[str, Any]]:
-        await self._emit("progress", 2, "Explorer Agent — Starting Playwright BFS crawl", self.url, 0, 0)
+        await self._emit("progress", 2, "Explorer Agent — Starting Playwright BFS crawl", self.url, 0, 0, active_agent="crawler")
 
         discovered_count = 0
         completed_count = 0
@@ -297,7 +297,7 @@ class AuditOrchestrator:
         async def progress_cb(current_page: str, discovered_count: int, completed_count: int, agent: str):
             pct = min(38, 2 + int((completed_count / max(1, discovered_count)) * 36))
             eta = self._estimate_time(pct)
-            await self._emit("progress", pct, agent, current_page, discovered_count, completed_count)
+            await self._emit("progress", pct, agent, current_page, discovered_count, completed_count, active_agent="crawler")
 
         pages_raw = await crawl_async(
             self.url,
@@ -309,7 +309,7 @@ class AuditOrchestrator:
         if not pages_raw:
             raise RuntimeError(f"Crawl returned 0 pages for {self.url}. Check URL or network.")
 
-        await self._emit("progress", 40, f"Explorer Agent — Discovered {len(pages_raw)} pages", self.url, len(pages_raw), len(pages_raw))
+        await self._emit("progress", 40, f"Explorer Agent — Discovered {len(pages_raw)} pages", self.url, len(pages_raw), len(pages_raw), active_agent="crawler")
         return pages_raw
 
     # ── Phase 2: Per-page Analysis ────────────────────────────────────────────
@@ -341,7 +341,7 @@ class AuditOrchestrator:
             # --- Agent 1: UX ---
             await self._emit("progress", base_pct + 1,
                              "UX Evaluation Agent — Applying Nielsen's 10 Usability Heuristics",
-                             page_url, total, idx)
+                             page_url, total, idx, active_agent="wcag")
             try:
                 ux_issues = await asyncio.wait_for(
                     asyncio.to_thread(self.ux_agent.analyze, html, dom_info, page_url),
@@ -356,7 +356,7 @@ class AuditOrchestrator:
             # --- Agent 2: A11y ---
             await self._emit("progress", base_pct + 2,
                              "Accessibility Engine — Validating WCAG 2.2 A/AA/AAA rules",
-                             page_url, total, idx)
+                             page_url, total, idx, active_agent="wcag")
             try:
                 a11y_issues = await asyncio.wait_for(
                     asyncio.to_thread(self.a11y_agent.analyze, html, dom_info, page_url),
@@ -375,7 +375,7 @@ class AuditOrchestrator:
             # --- Agent 3: Personas ---
             await self._emit("progress", base_pct + 3,
                              "Persona Simulation Agent — Evaluating 5 user personas",
-                             page_url, total, idx)
+                             page_url, total, idx, active_agent="navigation")
             try:
                 personas = await asyncio.wait_for(
                     asyncio.to_thread(self.persona_agent.analyze, ux_issues, a11y_issues, ux_score, a11y_score),
@@ -390,7 +390,7 @@ class AuditOrchestrator:
             # --- Agent 4: Business Impact ---
             await self._emit("progress", base_pct + 4,
                              "Business Impact Agent — Estimating revenue and conversion lift",
-                             page_url, total, idx)
+                             page_url, total, idx, active_agent="consistency")
             try:
                 biz_impact = await asyncio.wait_for(
                     asyncio.to_thread(self.business_agent.analyze, ux_issues, a11y_issues, page_path),
@@ -410,7 +410,7 @@ class AuditOrchestrator:
             # --- Agent 5: Improvement ---
             await self._emit("progress", base_pct + 5,
                              "AI Improvement Agent — Generating before/after code fixes",
-                             page_url, total, idx)
+                             page_url, total, idx, active_agent="recommendation")
             try:
                 before_after = await asyncio.wait_for(
                     asyncio.to_thread(self.improvement_agent.generate, html, ux_issues, a11y_issues),
@@ -618,6 +618,7 @@ class AuditOrchestrator:
         current_page: str,
         discovered: int = 0,
         completed: int = 0,
+        active_agent: str = "",
     ):
         event = {
             "type": event_type,
@@ -630,6 +631,7 @@ class AuditOrchestrator:
             "percent": percent,
             "estimated_time": self._estimate_time(percent),
             "error": None,
+            "active_agent": active_agent,
         }
         try:
             self.q.put_nowait(event)
